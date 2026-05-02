@@ -459,7 +459,6 @@ function Features() {
 }
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
-──
 function Pricing() {
   const plans = [
     {

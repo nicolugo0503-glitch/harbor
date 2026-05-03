@@ -2,13 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { createProject, listProjects } from "@/lib/kv";
 import { v4 as uuidv4 } from "uuid";
 
-// Simple auth: read ownerId from a header (in production you'd use Clerk/Auth.js)
-// For now we use a fixed demo owner so the dashboard works without a full auth system
-const DEMO_OWNER = "owner_demo";
+/** Derive a stable ownerId from an email address. Matches the webhook's convention. */
+function ownerIdFromEmail(email: string): string {
+  return `stripe_${email.toLowerCase().replace(/[^a-z0-9]/gi, "_")}`;
+}
 
-export async function GET() {
+/** Read the caller's email from the X-Customer-Email header. Falls back to demo owner. */
+function getOwnerId(req: NextRequest): string {
+  const email = req.headers.get("x-customer-email");
+  if (email && email.includes("@")) return ownerIdFromEmail(email);
+  return "owner_demo";
+}
+
+export async function GET(req: NextRequest) {
   try {
-    const projects = await listProjects(DEMO_OWNER);
+    const ownerId = getOwnerId(req);
+    const projects = await listProjects(ownerId);
     return NextResponse.json({ projects });
   } catch (e) {
     console.error(e);
@@ -22,10 +31,11 @@ export async function POST(req: NextRequest) {
     if (!name || typeof name !== "string" || name.trim().length < 1) {
       return NextResponse.json({ error: "Project name is required" }, { status: 400 });
     }
+    const ownerId = getOwnerId(req);
     const project = await createProject({
       id: uuidv4(),
       name: name.trim(),
-      ownerId: DEMO_OWNER,
+      ownerId,
       plan,
     });
     return NextResponse.json({ project }, { status: 201 });

@@ -89,14 +89,14 @@ export default function Docs() {
                 <div className="w-7 h-7 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">1</div>
                 <div className="flex-1">
                   <p className="font-medium text-white mb-1">Install the SDK</p>
-                  <CodeBlock code="npm install @harbor/sdk" />
+                  <CodeBlock code="npm install harbor-sdk" />
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="w-7 h-7 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">2</div>
                 <div className="flex-1">
                   <p className="font-medium text-white mb-1">Add one line to your API</p>
-                  <CodeBlock lang="js" code={`const { harbor } = require('@harbor/sdk');
+                  <CodeBlock lang="js" code={`const { harbor } = require('harbor-sdk');
 
 app.use(harbor({ projectId: 'proj_harbor_xyz' }));`} />
                 </div>
@@ -114,7 +114,7 @@ app.use(harbor({ projectId: 'proj_harbor_xyz' }));`} />
 
           {/* Installation */}
           <Section id="install" title="Installation">
-            <CodeBlock code="npm install @harbor/sdk" />
+            <CodeBlock code="npm install harbor-sdk" />
             <p className="text-slate-400 text-sm">Requires Node.js 16+. Works with Express, Fastify, Hono, or any Node.js HTTP framework.</p>
           </Section>
 
@@ -129,7 +129,7 @@ app.use(harbor({ projectId: 'proj_harbor_xyz' }));`} />
             </ul>
 
             <CodeBlock lang="js" code={`const express = require('express');
-const { harbor } = require('@harbor/sdk');
+const { harbor } = require('harbor-sdk');
 
 const app = express();
 
@@ -175,7 +175,7 @@ app.listen(3000);`} />
           {/* Validate function */}
           <Section id="validate" title="Validate Function">
             <p className="mb-2">Use <code className="text-sky-400 text-sm bg-slate-800 px-1.5 py-0.5 rounded">validate()</code> when you need key validation without middleware â useful for serverless functions, GraphQL resolvers, or custom auth logic.</p>
-            <CodeBlock lang="js" code={`const { validate } = require('@harbor/sdk');
+            <CodeBlock lang="js" code={`const { validate } = require('harbor-sdk');
 
 // In any async handler
 const info = await validate(req.headers['x-harbor-key']);
@@ -239,7 +239,7 @@ console.log(info.callsThisMonth); // 1042`} />
 });`} />
 
             <h3 className="font-semibold text-white mb-2">Serverless (Vercel / AWS Lambda)</h3>
-            <CodeBlock lang="js" code={`const { validate } = require('@harbor/sdk');
+            <CodeBlock lang="js" code={`const { validate } = require('harbor-sdk');
 
 export default async function handler(req, res) {
   const info = await validate(req.headers['x-harbor-key']);
@@ -250,7 +250,7 @@ export default async function handler(req, res) {
 }`} />
 
             <h3 className="font-semibold text-white mb-2">TypeScript</h3>
-            <CodeBlock lang="ts" code={`import { harbor } from '@harbor/sdk';
+            <CodeBlock lang="ts" code={`import { harbor } from 'harbor-sdk';
 import express, { Request, Response } from 'express';
 
 const app = express();

@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     if (webhookSecret && sig) {
       const { Stripe } = await import("stripe");
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
-      event = stripe.webhooks.constructEvent(body, sig, webhookSecret) as typeof event;
+      event = stripe.webhooks.constructEvent(body, sig, webhookSecret) as unknown as typeof event;
     } else {
       event = JSON.parse(body);
     }

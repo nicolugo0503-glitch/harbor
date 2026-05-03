@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
+import { getProject } from "@/lib/kv";
 
 // GET /api/analytics?projectId=xxx&email=xxx&days=7
 export async function GET(req: NextRequest) {
@@ -13,9 +14,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const project = await kv.get<Record<string, unknown>>(`project:${projectId}`);
+    const project = await getProject(projectId);
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    if (project.ownerEmail !== email) {
+    if (project.ownerId !== email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
   } catch {
@@ -37,7 +38,9 @@ export async function GET(req: NextRequest) {
         kv.get<number>(`analytics:${projectId}:invalid:${date}`),
       ]);
       const hours = hourly as Record<string, string> | null;
-      const totalCalls = hours ? Object.values(hours).reduce((sum, v) => sum + parseInt(v || "0"), 0) : 0;
+      const totalCalls = hours
+        ? Object.values(hours).reduce((sum, v) => sum + parseInt(v || "0"), 0)
+        : 0;
       return {
         date,
         calls: totalCalls,
@@ -53,9 +56,12 @@ export async function GET(req: NextRequest) {
   let recentCalls: unknown[] = [];
   try {
     const rawLog = await kv.lrange(`calllog:${projectId}`, 0, 49);
-    recentCalls = rawLog.map((entry) => {
-      try { return typeof entry === "string" ? JSON.parse(entry) : entry; } catch { return null; }
-    }).filter(Boolean);
+    recentCalls = rawLog
+      .map((entry) => {
+        try { return typeof entry === "string" ? JSON.parse(entry) : entry; }
+        catch { return null; }
+      })
+      .filter(Boolean);
   } catch {}
 
   const totalCalls = dailyData.reduce((sum, d) => sum + d.calls, 0);
@@ -64,5 +70,8 @@ export async function GET(req: NextRequest) {
   const successRate = totalCalls > 0 ? Math.round((totalValid / totalCalls) * 100) : 100;
   const todayCalls = dailyData[dailyData.length - 1]?.calls || 0;
 
-  return NextResponse.json({ projectId, days, totalCalls, totalValid, totalInvalid, successRate, todayCalls, daily: dailyData, recentCalls });
-          }
+  return NextResponse.json({
+    projectId, days, totalCalls, totalValid, totalInvalid,
+    successRate, todayCalls, daily: dailyData, recentCalls,
+  });
+}

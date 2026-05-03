@@ -226,7 +226,7 @@ import { db } from './db';
 // Takes months. Breaks constantly.`;
 
   const after = `// The Harbor way â one SDK, done â¨
-import { harbor } from '@harbor/sdk';
+import { harbor } from 'harbor-sdk';
 
 const app = express();
 
@@ -315,7 +315,7 @@ function HowItWorks() {
       icon: <Package size={20} />,
       title: "Install the SDK",
       desc: "One npm install. Works with Express, Fastify, Hono, or any Node.js framework.",
-      code: "npm install @harbor/sdk",
+      code: "npm install harbor-sdk",
     },
     {
       num: "02",

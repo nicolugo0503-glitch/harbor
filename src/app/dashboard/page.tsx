@@ -1,415 +1,300 @@
 "use client";
+import { useState, useEffect, useCallback } from "react";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Copy, Plus, Trash2, Key, Layers, ChevronRight, Eye, EyeOff, Check, RefreshCw, Zap, BarChart2, LogOut, Mail } from "lucide-react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Project = {
-  id: string;
-  name: string;
-  ownerId: string;
-  createdAt: string;
-  plan: "free" | "pro" | "scale";
-};
-
-type ApiKey = {
-  id: string;
-  key: string;
-  projectId: string;
-  name: string;
-  createdAt: string;
-  lastUsed: string | null;
-  callsThisMonth: number;
-  active: boolean;
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const PLAN_COLORS: Record<string, string> = {
-  free: "bg-slate-700 text-slate-300",
-  pro: "bg-sky-900 text-sky-300",
-  scale: "bg-violet-900 text-violet-300",
-};
-
-const PLAN_LIMITS: Record<string, string> = {
-  free: "10K calls/mo",
-  pro: "500K calls/mo",
-  scale: "Unlimited",
-};
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+interface Project { id: string; name: string; createdAt: string; }
+interface ApiKey { id: string; name: string; key: string; plan: string; createdAt: string; projectId: string; }
+interface AnalyticsData {
+  totalCalls: number; totalValid: number; totalInvalid: number; successRate: number; todayCalls: number;
+  daily: { date: string; calls: number; valid: number; invalid: number }[];
+  recentCalls: { ts: string; keyId: string; valid: boolean; ip: string; ms: number; plan?: string }[];
 }
-
-function maskKey(key: string) {
-  return key.slice(0, 12) + "••••••••••••••••••••" + key.slice(-4);
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <button onClick={copy} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-sky-400 transition-colors" title="Copy">
-      {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-    </button>
-  );
-}
-
-function Badge({ plan }: { plan: string }) {
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PLAN_COLORS[plan] ?? "bg-slate-700 text-slate-300"}`}>
-      {plan}
-    </span>
-  );
-}
-
-// ─── Email Gate ───────────────────────────────────────────────────────────────
-
-function EmailGate({ onEmail }: { onEmail: (email: string) => void }) {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !trimmed.includes("@")) {
-      setError("Enter a valid email address");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    onEmail(trimmed);
-    setLoading(false);
-  }
-
-  return (
-    <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2.5 mb-8 justify-center">
-          <div className="w-9 h-9 rounded-xl bg-sky-500 flex items-center justify-center">
-            <Zap size={18} className="text-white" />
-          </div>
-          <span className="text-xl font-bold text-white">Harbor</span>
-        </div>
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 mx-auto mb-4">
-            <Mail size={22} className="text-sky-400" />
-          </div>
-          <h1 className="text-xl font-bold text-white text-center mb-1">Sign in to Dashboard</h1>
-          <p className="text-slate-400 text-sm text-center mb-6">Enter the email you used to subscribe. We&apos;ll load your API keys.</p>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required autoFocus className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition" />
-            {error && <p className="text-red-400 text-xs">{error}</p>}
-            <button type="submit" disabled={loading} className="w-full bg-sky-600 hover:bg-sky-500 disabled:opacity-60 text-white py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2">
-              {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Access my dashboard"}
-            </button>
-          </form>
-          <p className="text-center text-xs text-slate-500 mt-4">No account?{" "}<a href="/#pricing" className="text-sky-400 hover:text-sky-300">Subscribe to a plan →</a></p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Default Export with Suspense ─────────────────────────────────────────────
 
 export default function Dashboard() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-sky-500/30 border-t-sky-500 rounded-full animate-spin" />
-      </div>
-    }>
-      <DashboardContent />
-    </Suspense>
-  );
-}
-
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
-
-function DashboardContent() {
-  const searchParams = useSearchParams();
-  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [authed, setAuthed] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(false);
-  const [loadingKeys, setLoadingKeys] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newKeyName, setNewKeyName] = useState("");
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [creatingKey, setCreatingKey] = useState(false);
-  const [showNewKey, setShowNewKey] = useState<ApiKey | null>(null);
-  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
-  const [showProjectForm, setShowProjectForm] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [sessionLoadingDone, setSessionLoadingDone] = useState(false);
+  const [newKeyPlan, setNewKeyPlan] = useState("free");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"keys" | "analytics">("keys");
 
-  useEffect(() => {
-    const stored = localStorage.getItem("harbor_customer_email");
-    const sessionId = searchParams.get("session_id");
-    const isSuccess = searchParams.get("success") === "1";
-    if (stored) {
-      setCustomerEmail(stored);
-      if (isSuccess) setSuccessMessage("🎉 Payment successful! Your API keys are ready.");
-      setSessionLoadingDone(true);
-      return;
-    }
-    if (sessionId) {
-      setSessionLoading(true);
-      fetch(`/api/stripe/session?session_id=${sessionId}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.email) {
-            localStorage.setItem("harbor_customer_email", data.email);
-            setCustomerEmail(data.email);
-            setSuccessMessage("🎉 Payment successful! Your API keys are ready below.");
-          }
-        })
-        .catch(() => {})
-        .finally(() => { setSessionLoading(false); setSessionLoadingDone(true); });
-    } else {
-      setSessionLoadingDone(true);
-    }
-  }, [searchParams]);
-
-  function handleEmailSet(email: string) {
-    localStorage.setItem("harbor_customer_email", email);
-    setCustomerEmail(email);
-  }
-
-  function handleSignOut() {
-    localStorage.removeItem("harbor_customer_email");
-    setCustomerEmail(null);
-    setProjects([]);
-    setSelectedProject(null);
-    setKeys([]);
-  }
-
-  function authHeaders(): Record<string, string> {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (customerEmail) headers["x-customer-email"] = customerEmail;
-    return headers;
-  }
-
-  const loadProjects = useCallback(async () => {
-    if (!customerEmail) return;
-    setLoadingProjects(true);
-    try {
-      const res = await fetch("/api/projects", { headers: { "x-customer-email": customerEmail } });
-      const data = await res.json();
-      const sorted = (data.projects ?? []).sort((a: Project, b: Project) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setProjects(sorted);
-      if (sorted.length > 0) setSelectedProject((prev) => prev ?? sorted[0]);
-    } catch { } finally { setLoadingProjects(false); }
-  }, [customerEmail]);
-
-  const loadKeys = useCallback(async (projectId: string) => {
-    setLoadingKeys(true);
-    try {
-      const res = await fetch(`/api/keys?projectId=${projectId}`);
-      const data = await res.json();
-      setKeys(data.keys ?? []);
-    } catch { setKeys([]); } finally { setLoadingKeys(false); }
+  const loadProjects = useCallback(async (e: string) => {
+    const r = await fetch(`/api/projects?email=${encodeURIComponent(e)}`);
+    const d = await r.json();
+    if (d.projects) setProjects(d.projects);
   }, []);
 
-  useEffect(() => { if (customerEmail) loadProjects(); }, [customerEmail, loadProjects]);
-  useEffect(() => {
-    if (selectedProject) loadKeys(selectedProject.id);
-    else setKeys([]);
-  }, [selectedProject, loadKeys]);
+  const loadKeys = useCallback(async (projectId: string, e: string) => {
+    const r = await fetch(`/api/keys?projectId=${projectId}&email=${encodeURIComponent(e)}`);
+    const d = await r.json();
+    if (d.keys) setKeys(d.keys);
+  }, []);
 
-  async function handleCreateProject(e: React.FormEvent) {
+  const loadAnalytics = useCallback(async (projectId: string, e: string) => {
+    setAnalyticsLoading(true);
+    try {
+      const r = await fetch(`/api/analytics?projectId=${projectId}&email=${encodeURIComponent(e)}&days=7`);
+      const d = await r.json();
+      if (!d.error) setAnalytics(d);
+    } catch {}
+    setAnalyticsLoading(false);
+  }, []);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const r = await fetch(`/api/projects?email=${encodeURIComponent(email)}`);
+      if (r.ok) { setAuthed(true); await loadProjects(email); }
+      else setError("Unable to verify. Check your email.");
+    } catch { setError("Network error."); }
+    setLoading(false);
+  };
+
+  const selectProject = async (id: string) => {
+    setSelectedProject(id);
+    setKeys([]);
+    setAnalytics(null);
+    await loadKeys(id, email);
+    if (activeTab === "analytics") await loadAnalytics(id, email);
+  };
+
+  const switchTab = async (tab: "keys" | "analytics") => {
+    setActiveTab(tab);
+    if (tab === "analytics" && selectedProject && !analytics) {
+      await loadAnalytics(selectedProject, email);
+    }
+  };
+
+  const createProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
-    setCreatingProject(true);
-    try {
-      const res = await fetch("/api/projects", { method: "POST", headers: authHeaders(), body: JSON.stringify({ name: newProjectName.trim(), plan: "free" }) });
-      const data = await res.json();
-      if (data.project) { setProjects((prev) => [data.project, ...prev]); setSelectedProject(data.project); setNewProjectName(""); setShowProjectForm(false); }
-    } finally { setCreatingProject(false); }
-  }
+    setLoading(true);
+    const r = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newProjectName, email }) });
+    const d = await r.json();
+    if (d.project) { setProjects(p => [...p, d.project]); setNewProjectName(""); }
+    setLoading(false);
+  };
 
-  async function handleCreateKey(e: React.FormEvent) {
+  const createKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKeyName.trim() || !selectedProject) return;
-    setCreatingKey(true);
-    try {
-      const res = await fetch("/api/keys", { method: "POST", headers: authHeaders(), body: JSON.stringify({ projectId: selectedProject.id, name: newKeyName.trim() }) });
-      const data = await res.json();
-      if (data.apiKey) { setShowNewKey(data.apiKey); setKeys((prev) => [data.apiKey, ...prev]); setNewKeyName(""); }
-    } finally { setCreatingKey(false); }
-  }
+    setLoading(true);
+    const r = await fetch("/api/keys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newKeyName, plan: newKeyPlan, projectId: selectedProject, email }) });
+    const d = await r.json();
+    if (d.key) { setKeys(k => [...k, d.key]); setNewKeyName(""); }
+    setLoading(false);
+  };
 
-  async function handleRevokeKey(keyId: string) {
-    if (!confirm("Revoke this key? Apps using it will stop working immediately.")) return;
-    await fetch("/api/keys", { method: "DELETE", headers: authHeaders(), body: JSON.stringify({ keyId }) });
-    setKeys((prev) => prev.map((k) => (k.id === keyId ? { ...k, active: false } : k)));
-  }
+  const deleteKey = async (keyId: string) => {
+    await fetch(`/api/keys?id=${keyId}&email=${encodeURIComponent(email)}`, { method: "DELETE" });
+    setKeys(k => k.filter(x => x.id !== keyId));
+  };
 
-  function toggleReveal(keyId: string) {
-    setRevealedKeys((prev) => { const next = new Set(prev); if (next.has(keyId)) next.delete(keyId); else next.add(keyId); return next; });
-  }
+  const copyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
-  if (sessionLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-sky-500/30 border-t-sky-500 rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">Loading your account…</p>
-        </div>
+  const maxCalls = analytics ? Math.max(...analytics.daily.map(d => d.calls), 1) : 1;
+
+  if (!authed) return (
+    <div style={{ minHeight: "100vh", background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
+      <div style={{ background: "#111", border: "1px solid #222", borderRadius: 12, padding: 40, width: 360, textAlign: "center" }}>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Harbor</div>
+        <div style={{ color: "#666", marginBottom: 28 }}>Enter your email to access your dashboard</div>
+        <form onSubmit={handleAuth}>
+          <input value={email} onChange={e => setEmail(e.target.value)} type="email" required placeholder="you@example.com"
+            style={{ width: "100%", padding: "10px 14px", background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 15, marginBottom: 12, boxSizing: "border-box" }} />
+          {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 8 }}>{error}</div>}
+          <button type="submit" disabled={loading}
+            style={{ width: "100%", padding: "10px 0", background: "#fff", color: "#000", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Checking..." : "Continue →"}
+          </button>
+        </form>
       </div>
-    );
-  }
-
-  if (!customerEmail) return <EmailGate onEmail={handleEmailSet} />;
-
-  return (
-    <div className="min-h-screen bg-[#0a0f1a] text-slate-100 flex">
-      <aside className="w-64 border-r border-slate-800 flex flex-col bg-[#0d1321]">
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-sky-500 flex items-center justify-center"><Zap size={14} className="text-white" /></div>
-          <span className="font-bold text-white text-lg">Harbor</span>
-          <span className="ml-auto text-xs text-slate-500">v0.1</span>
-        </div>
-        <div className="px-5 py-3 border-b border-slate-800/50 flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-sky-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">{customerEmail[0].toUpperCase()}</div>
-          <span className="text-xs text-slate-400 truncate flex-1">{customerEmail}</span>
-          <button onClick={handleSignOut} title="Sign out" className="text-slate-600 hover:text-slate-400 transition-colors flex-shrink-0"><LogOut size={13} /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">Projects</span>
-            <button onClick={() => setShowProjectForm((v) => !v)} className="text-slate-400 hover:text-sky-400 transition-colors" title="New project"><Plus size={15} /></button>
-          </div>
-          {showProjectForm && (
-            <form onSubmit={handleCreateProject} className="mb-3">
-              <input autoFocus value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} placeholder="Project name" className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 mb-1.5" />
-              <div className="flex gap-1.5">
-                <button type="submit" disabled={creatingProject || !newProjectName.trim()} className="flex-1 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs py-1.5 rounded-md font-medium transition-colors">{creatingProject ? "Creating…" : "Create"}</button>
-                <button type="button" onClick={() => { setShowProjectForm(false); setNewProjectName(""); }} className="px-2 text-slate-400 hover:text-white text-xs py-1.5 rounded-md">Cancel</button>
-              </div>
-            </form>
-          )}
-          {loadingProjects ? <div className="text-slate-500 text-xs px-1 py-2">Loading…</div> : projects.length === 0 ? <div className="text-slate-500 text-xs px-1 py-2">No projects yet.</div> : projects.map((p) => (
-            <button key={p.id} onClick={() => setSelectedProject(p)} className={`w-full text-left px-3 py-2 rounded-lg mb-0.5 flex items-center gap-2 transition-colors text-sm ${selectedProject?.id === p.id ? "bg-sky-600/20 text-sky-300 border border-sky-600/30" : "text-slate-300 hover:bg-slate-800"}`}>
-              <Layers size={13} className="shrink-0" /><span className="truncate flex-1">{p.name}</span><ChevronRight size={12} className="shrink-0 opacity-50" />
-            </button>
-          ))}
-        </div>
-        <div className="p-3 border-t border-slate-800 flex items-center justify-between">
-          <a href="/" className="text-xs text-slate-500 hover:text-slate-300">← Back</a>
-          <a href="/#pricing" className="text-xs text-sky-600 hover:text-sky-400">Upgrade</a>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-y-auto">
-        {successMessage && (
-          <div className="bg-green-900/30 border-b border-green-700/40 px-8 py-3 flex items-center justify-between">
-            <p className="text-green-400 text-sm font-medium">{successMessage}</p>
-            <button onClick={() => setSuccessMessage("")} className="text-green-600 hover:text-green-400 text-xs">Dismiss</button>
-          </div>
-        )}
-        {!selectedProject ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-12">
-            <div className="w-16 h-16 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mb-4"><Layers size={28} className="text-sky-400" /></div>
-            <h2 className="text-xl font-semibold text-white mb-2">No project selected</h2>
-            <p className="text-slate-400 mb-6 max-w-sm">Create your first project to start generating API keys.</p>
-            <button onClick={() => setShowProjectForm(true)} className="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2 rounded-lg font-medium flex items-center gap-2"><Plus size={16} />New Project</button>
-          </div>
-        ) : (
-          <div className="p-8 max-w-4xl">
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-1"><h1 className="text-2xl font-bold text-white">{selectedProject.name}</h1><Badge plan={selectedProject.plan} /></div>
-              <p className="text-slate-400 text-sm">Created {formatDate(selectedProject.createdAt)} · {PLAN_LIMITS[selectedProject.plan]}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              {[
-                { label: "API Keys", value: keys.filter((k) => k.active).length, icon: Key },
-                { label: "Calls This Month", value: keys.reduce((s, k) => s + k.callsThisMonth, 0).toLocaleString(), icon: BarChart2 },
-                { label: "Plan", value: selectedProject.plan.charAt(0).toUpperCase() + selectedProject.plan.slice(1), icon: Zap },
-              ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-2"><Icon size={13} />{label}</div>
-                  <div className="text-2xl font-bold text-white">{value}</div>
-                </div>
-              ))}
-            </div>
-            {showNewKey && (
-              <div className="mb-6 bg-green-900/20 border border-green-700/40 rounded-xl p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div><p className="text-green-400 font-semibold text-sm">🎉 New API key — copy it now!</p><p className="text-slate-400 text-xs mt-0.5">This is the only time the full key will be shown.</p></div>
-                  <button onClick={() => setShowNewKey(null)} className="text-slate-500 hover:text-white text-xs">Dismiss</button>
-                </div>
-                <div className="bg-slate-900 rounded-lg px-4 py-2.5 font-mono text-sm text-sky-300 flex items-center justify-between">
-                  <span className="truncate">{showNewKey.key}</span><CopyButton text={showNewKey.key} />
-                </div>
-              </div>
-            )}
-            <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl">
-              <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
-                <div className="flex items-center gap-2"><Key size={16} className="text-sky-400" /><h2 className="font-semibold text-white">API Keys</h2><span className="text-slate-500 text-xs">{keys.filter((k) => k.active).length} active</span></div>
-                <button onClick={() => loadKeys(selectedProject.id)} className="text-slate-400 hover:text-white transition-colors" title="Refresh"><RefreshCw size={14} /></button>
-              </div>
-              <div className="px-5 py-4 border-b border-slate-700/50 bg-slate-800/20">
-                <form onSubmit={handleCreateKey} className="flex gap-3">
-                  <input value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="Key name (e.g. Production)" className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
-                  <button type="submit" disabled={creatingKey || !newKeyName.trim()} className="bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><Plus size={14} />{creatingKey ? "Creating…" : "Create Key"}</button>
-                </form>
-              </div>
-              {loadingKeys ? <div className="px-5 py-8 text-center text-slate-500 text-sm">Loading keys…</div> : keys.length === 0 ? (
-                <div className="px-5 py-10 text-center"><Key size={24} className="text-slate-600 mx-auto mb-2" /><p className="text-slate-400 text-sm">No API keys yet. Create one above.</p></div>
-              ) : (
-                <div className="divide-y divide-slate-700/40">
-                  {keys.map((k) => (
-                    <div key={k.id} className={`px-5 py-4 flex items-center gap-4 ${!k.active ? "opacity-50" : ""}`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1"><span className="font-medium text-sm text-white">{k.name}</span>{!k.active && <span className="text-xs bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded">Revoked</span>}</div>
-                        <div className="flex items-center gap-2">
-                          <code className="font-mono text-xs text-slate-400">{revealedKeys.has(k.id) ? k.key : maskKey(k.key)}</code>
-                          {k.active && (<><button onClick={() => toggleReveal(k.id)} className="text-slate-500 hover:text-slate-300" title={revealedKeys.has(k.id) ? "Hide" : "Reveal"}>{revealedKeys.has(k.id) ? <EyeOff size={12} /> : <Eye size={12} />}</button><CopyButton text={k.key} /></>)}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-xs text-slate-400">{k.callsThisMonth.toLocaleString()} calls</div>
-                        <div className="text-xs text-slate-600 mt-0.5">{k.lastUsed ? `Last used ${formatDate(k.lastUsed)}` : `Created ${formatDate(k.createdAt)}`}</div>
-                      </div>
-                      {k.active && <button onClick={() => handleRevokeKey(k.id)} className="shrink-0 p-2 rounded-lg hover:bg-red-900/30 text-slate-500 hover:text-red-400" title="Revoke key"><Trash2 size={14} /></button>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="mt-6 bg-slate-800/30 border border-slate-700/50 rounded-xl">
-              <div className="px-5 py-4 border-b border-slate-700/50"><h2 className="font-semibold text-white">Quick Integration</h2><p className="text-slate-400 text-xs mt-0.5">Use your API key in requests</p></div>
-              <div className="p-5 space-y-3">
-                {[
-                  { lang: "cURL", code: `curl -H "X-Harbor-Key: hbr_live_your_key_here" https://your-api.com/endpoint` },
-                  { lang: "Node.js", code: `const res = await fetch("https://your-api.com/endpoint", {\n  headers: { "X-Harbor-Key": "hbr_live_your_key_here" }\n});` },
-                  { lang: "Python", code: `import requests\nres = requests.get("https://your-api.com/endpoint",\n  headers={"X-Harbor-Key": "hbr_live_your_key_here"})` },
-                ].map(({ lang, code }) => (
-                  <div key={lang}>
-                    <div className="text-xs text-slate-500 mb-1.5 font-medium">{lang}</div>
-                    <div className="relative bg-slate-900 rounded-lg p-4 font-mono text-xs text-slate-300 leading-relaxed">
-                      <pre className="whitespace-pre-wrap">{code}</pre>
-                      <div className="absolute top-2 right-2"><CopyButton text={code} /></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
     </div>
   );
-}
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff", fontFamily: "system-ui,sans-serif" }}>
+      <div style={{ borderBottom: "1px solid #1a1a1a", padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontWeight: 700, fontSize: 18 }}>⚓ Harbor</div>
+        <div style={{ color: "#555", fontSize: 14 }}>{email}</div>
+      </div>
+
+      <div style={{ display: "flex", gap: 0, height: "calc(100vh - 57px)" }}>
+        {/* Sidebar */}
+        <div style={{ width: 240, borderRight: "1px solid #1a1a1a", padding: 20, overflowY: "auto", flexShrink: 0 }}>
+          <div style={{ color: "#555", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Projects</div>
+          {projects.map(p => (
+            <button key={p.id} onClick={() => selectProject(p.id)}
+              style={{ width: "100%", textAlign: "left", padding: "8px 12px", borderRadius: 8, border: "none", background: selectedProject === p.id ? "#1a1a1a" : "transparent", color: selectedProject === p.id ? "#fff" : "#888", cursor: "pointer", marginBottom: 4, fontSize: 14, transition: "all 0.15s" }}>
+              {p.name}
+            </button>
+          ))}
+          <form onSubmit={createProject} style={{ marginTop: 12 }}>
+            <input value={newProjectName} onChange={e => setNewProjectName(e.target.value)} placeholder="New project..." 
+              style={{ width: "100%", padding: "7px 10px", background: "#111", border: "1px solid #222", borderRadius: 8, color: "#fff", fontSize: 13, marginBottom: 6, boxSizing: "border-box" }} />
+            <button type="submit" disabled={loading} style={{ width: "100%", padding: "6px 0", background: "#222", color: "#fff", border: "1px solid #333", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+              + Create
+            </button>
+          </form>
+        </div>
+
+        {/* Main */}
+        <div style={{ flex: 1, overflowY: "auto", padding: 28 }}>
+          {!selectedProject ? (
+            <div style={{ color: "#555", marginTop: 60, textAlign: "center" }}>Select or create a project to get started</div>
+          ) : (
+            <>
+              {/* Tabs */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 24, borderBottom: "1px solid #1a1a1a", paddingBottom: 0 }}>
+                {(["keys", "analytics"] as const).map(tab => (
+                  <button key={tab} onClick={() => switchTab(tab)}
+                    style={{ padding: "8px 16px", background: "transparent", border: "none", borderBottom: activeTab === tab ? "2px solid #fff" : "2px solid transparent", color: activeTab === tab ? "#fff" : "#555", cursor: "pointer", fontSize: 14, fontWeight: activeTab === tab ? 600 : 400, transition: "all 0.15s", marginBottom: -1 }}>
+                    {tab === "keys" ? "API Keys" : "Analytics"}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === "keys" && (
+                <>
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>Project ID</div>
+                    <code style={{ background: "#111", border: "1px solid #222", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#888" }}>{selectedProject}</code>
+                  </div>
+
+                  {/* Key list */}
+                  <div style={{ marginBottom: 24 }}>
+                    {keys.length === 0 && <div style={{ color: "#444", fontSize: 14 }}>No API keys yet. Create one below.</div>}
+                    {keys.map(k => (
+                      <div key={k.id} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 10, padding: "14px 18px", marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{k.name}</div>
+                          <code style={{ fontSize: 12, color: "#666" }}>{k.key}</code>
+                          <span style={{ marginLeft: 10, background: "#1a1a1a", border: "1px solid #333", borderRadius: 4, padding: "2px 8px", fontSize: 11, color: "#888" }}>{k.plan}</span>
+                        </div>
+                        <button onClick={() => copyKey(k.key)} style={{ padding: "5px 12px", background: copiedKey === k.key ? "#16a34a" : "#1a1a1a", border: "1px solid #333", borderRadius: 6, color: copiedKey === k.key ? "#fff" : "#aaa", fontSize: 12, cursor: "pointer" }}>
+                          {copiedKey === k.key ? "Copied!" : "Copy"}
+                        </button>
+                        <button onClick={() => deleteKey(k.id)} style={{ padding: "5px 10px", background: "transparent", border: "1px solid #333", borderRadius: 6, color: "#666", fontSize: 12, cursor: "pointer" }}>
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Create key form */}
+                  <form onSubmit={createKey} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 10, padding: 20 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Create API Key</div>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <input value={newKeyName} onChange={e => setNewKeyName(e.target.value)} placeholder="Key name (e.g. Production)" required
+                        style={{ flex: 1, padding: "8px 12px", background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, color: "#fff", fontSize: 14 }} />
+                      <select value={newKeyPlan} onChange={e => setNewKeyPlan(e.target.value)}
+                        style={{ padding: "8px 12px", background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, color: "#fff", fontSize: 14 }}>
+                        <option value="free">Free</option>
+                        <option value="pro">Pro</option>
+                        <option value="scale">Scale</option>
+                      </select>
+                      <button type="submit" disabled={loading} style={{ padding: "8px 20px", background: "#fff", color: "#000", border: "none", borderRadius: 8, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+                        {loading ? "..." : "Create"}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {activeTab === "analytics" && (
+                <div>
+                  {analyticsLoading ? (
+                    <div style={{ color: "#555", textAlign: "center", marginTop: 60 }}>Loading analytics...</div>
+                  ) : analytics ? (
+                    <>
+                      {/* Stat cards */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+                        {[
+                          { label: "Total Calls (7d)", value: analytics.totalCalls.toLocaleString() },
+                          { label: "Today", value: analytics.todayCalls.toLocaleString() },
+                          { label: "Success Rate", value: analytics.successRate + "%" },
+                          { label: "Invalid Keys", value: analytics.totalInvalid.toLocaleString() },
+                        ].map(stat => (
+                          <div key={stat.label} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 10, padding: "16px 20px" }}>
+                            <div style={{ color: "#555", fontSize: 12, marginBottom: 6 }}>{stat.label}</div>
+                            <div style={{ fontSize: 24, fontWeight: 700 }}>{stat.value}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Bar chart */}
+                      <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 10, padding: "20px 24px", marginBottom: 28 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Calls — Last 7 Days</div>
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100 }}>
+                          {analytics.daily.map(d => {
+                            const h = maxCalls > 0 ? Math.round((d.calls / maxCalls) * 100) : 0;
+                            const label = d.date.slice(5);
+                            return (
+                              <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                                <div title={`${d.calls} calls`}
+                                  style={{ width: "100%", height: h || 2, background: d.calls > 0 ? "#fff" : "#222", borderRadius: "3px 3px 0 0", transition: "height 0.3s", minHeight: 2 }} />
+                                <div style={{ fontSize: 10, color: "#555", whiteSpace: "nowrap" }}>{label}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Recent calls */}
+                      <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 10, padding: "20px 24px" }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Recent Calls</div>
+                        {analytics.recentCalls.length === 0 ? (
+                          <div style={{ color: "#444", fontSize: 13 }}>No calls yet. Calls will appear here once your API is in use.</div>
+                        ) : (
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                            <thead>
+                              <tr style={{ color: "#555", borderBottom: "1px solid #1a1a1a" }}>
+                                {["Time", "Key ID", "Valid", "IP", "Latency"].map(h => (
+                                  <th key={h} style={{ textAlign: "left", paddingBottom: 8, fontWeight: 500 }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analytics.recentCalls.slice(0, 20).map((c, i) => (
+                                <tr key={i} style={{ borderBottom: "1px solid #111" }}>
+                                  <td style={{ padding: "7px 0", color: "#555" }}>{new Date(c.ts).toLocaleTimeString()}</td>
+                                  <td style={{ padding: "7px 0" }}><code style={{ fontSize: 11, color: "#888" }}>{c.keyId?.substring(0,16)}...</code></td>
+                                  <td style={{ padding: "7px 0" }}>
+                                    <span style={{ background: c.valid ? "#14532d" : "#450a0a", color: c.valid ? "#86efac" : "#fca5a5", borderRadius: 4, padding: "2px 7px", fontSize: 11 }}>
+                                      {c.valid ? "✓ valid" : "✗ invalid"}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: "7px 0", color: "#555", fontFamily: "monospace" }}>{c.ip}</td>
+                                  <td style={{ padding: "7px 0", color: "#555" }}>{c.ms}ms</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: "#555", textAlign: "center", marginTop: 60 }}>No analytics data yet. Start making API calls to see data here.</div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+                      }

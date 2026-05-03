@@ -7,6 +7,92 @@ import {
   DollarSign, Lock, Activity, Cpu, Menu, X
 } from "lucide-react";
 
+// ─── CHECKOUT MODAL ───────────────────────────────────────────────────────────
+function CheckoutModal({
+  plan,
+  price,
+  onClose,
+}: {
+  plan: "pro" | "scale";
+  price: number;
+  onClose: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleCheckout(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ plan, email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
+        setLoading(false);
+      }
+    } catch {
+      setError("Network error. Please try again.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
+        <div className="mb-6">
+          <p className="text-harbor-400 text-xs font-semibold uppercase tracking-widest mb-1">
+            Subscribe to Harbor {plan.charAt(0).toUpperCase() + plan.slice(1)}
+          </p>
+          <h3 className="text-2xl font-bold text-white">${price}/month</h3>
+          <p className="text-white/40 text-sm mt-1">Cancel anytime · Instant setup</p>
+        </div>
+        <form onSubmit={handleCheckout} className="space-y-4">
+          <div>
+            <label className="block text-sm text-white/60 mb-2">Your work email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              required
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 text-sm focus:outline-none focus:border-harbor-500/60 focus:ring-1 focus:ring-harbor-500/30 transition"
+            />
+          </div>
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-harbor-500 hover:bg-harbor-400 text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-harbor-500/30 disabled:opacity-70 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>Continue to payment <ArrowRight size={15} /></>
+            )}
+          </button>
+          <p className="text-center text-xs text-white/25">
+            You&apos;ll be redirected to Stripe · Secured by 256-bit encryption
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── NAV ─────────────────────────────────────────────────────────────────────
 function Nav() {
   const [open, setOpen] = useState(false);
@@ -73,7 +159,13 @@ function Hero() {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+    } catch { /* fail silently */ }
     setLoading(false);
     setSubmitted(true);
   }
@@ -460,6 +552,8 @@ function Features() {
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
 function Pricing() {
+  const [modal, setModal] = useState<{ plan: "pro" | "scale"; price: number } | null>(null);
+
   const plans = [
     {
       name: "Starter",
@@ -475,6 +569,7 @@ function Pricing() {
       ],
       cta: "Start free",
       highlight: false,
+      action: () => window.location.href = "/dashboard",
     },
     {
       name: "Pro",
@@ -490,8 +585,9 @@ function Pricing() {
         "Email support",
         "Usage-based billing",
       ],
-      cta: "Start Pro trial",
+      cta: "Get started",
       highlight: true,
+      action: () => setModal({ plan: "pro", price: 49 }),
     },
     {
       name: "Scale",
@@ -508,13 +604,21 @@ function Pricing() {
         "Custom contracts",
         "SSO & team management",
       ],
-      cta: "Contact sales",
+      cta: "Get started",
       highlight: false,
+      action: () => setModal({ plan: "scale", price: 299 }),
     },
   ];
 
   return (
     <section id="pricing" className="py-24 px-6 relative">
+      {modal && (
+        <CheckoutModal
+          plan={modal.plan}
+          price={modal.price}
+          onClose={() => setModal(null)}
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-harbor-950/20 to-transparent pointer-events-none" />
       <div className="max-w-5xl mx-auto relative">
         <div className="text-center mb-16">
@@ -562,8 +666,8 @@ function Pricing() {
                 ))}
               </ul>
 
-              <a
-                href="#waitlist"
+              <button
+                onClick={p.action}
                 className={`block w-full py-3 rounded-xl text-sm font-semibold text-center transition-all ${
                   p.highlight
                     ? "bg-harbor-500 hover:bg-harbor-400 text-white hover:shadow-lg hover:shadow-harbor-500/30"
@@ -571,7 +675,7 @@ function Pricing() {
                 }`}
               >
                 {p.cta}
-              </a>
+              </button>
             </div>
           ))}
         </div>

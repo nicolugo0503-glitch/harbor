@@ -3,11 +3,11 @@
 import { useState } from "react";
 import {
   Zap, Shield, BarChart3, Code2, Globe, ChevronRight,
-  Check, ArrowRight, Star, Terminal, Package, Layers,
+  Check, ArrowRight, Terminal, Package, Layers,
   DollarSign, Lock, Activity, Cpu, Menu, X
 } from "lucide-react";
 
-// ─── CHECKOUT MODAL ───────────────────────────────────────────────────────────
+// âââ CHECKOUT MODAL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function CheckoutModal({
   plan,
   price,
@@ -57,7 +57,7 @@ function CheckoutModal({
             Subscribe to Harbor {plan.charAt(0).toUpperCase() + plan.slice(1)}
           </p>
           <h3 className="text-2xl font-bold text-white">${price}/month</h3>
-          <p className="text-white/40 text-sm mt-1">Cancel anytime · Instant setup</p>
+          <p className="text-white/40 text-sm mt-1">Cancel anytime Â· Instant setup</p>
         </div>
         <form onSubmit={handleCheckout} className="space-y-4">
           <div>
@@ -85,7 +85,7 @@ function CheckoutModal({
             )}
           </button>
           <p className="text-center text-xs text-white/25">
-            You&apos;ll be redirected to Stripe · Secured by 256-bit encryption
+            You&apos;ll be redirected to Stripe Â· Secured by 256-bit encryption
           </p>
         </form>
       </div>
@@ -93,7 +93,7 @@ function CheckoutModal({
   );
 }
 
-// ─── NAV ─────────────────────────────────────────────────────────────────────
+// âââ NAV âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Nav() {
   const [open, setOpen] = useState(false);
   return (
@@ -109,21 +109,18 @@ function Nav() {
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
-          {["Docs", "Pricing", "Blog", "Changelog"].map((l) => (
-            <a key={l} href={`#${l.toLowerCase()}`} className="hover:text-white transition-colors">
-              {l}
-            </a>
-          ))}
+          <a href="/docs" className="hover:text-white transition-colors">Docs</a>
+          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
         </div>
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">Sign in</a>
+          <a href="/dashboard" className="text-sm text-white/60 hover:text-white transition-colors">Sign in</a>
           <a
-            href="#waitlist"
+            href="#pricing"
             className="text-sm px-4 py-2 rounded-lg bg-harbor-500 hover:bg-harbor-400 text-white font-medium transition-all hover:shadow-lg hover:shadow-harbor-500/25"
           >
-            Get early access
+            Get started
           </a>
         </div>
 
@@ -135,13 +132,11 @@ function Nav() {
 
       {open && (
         <div className="md:hidden border-t border-white/5 bg-[#020617] px-6 py-4 space-y-3">
-          {["Docs", "Pricing", "Blog", "Changelog"].map((l) => (
-            <a key={l} href="#" className="block text-sm text-white/60 hover:text-white py-1">
-              {l}
-            </a>
-          ))}
-          <a href="#waitlist" className="block text-sm text-center py-2 rounded-lg bg-harbor-500 text-white font-medium mt-4">
-            Get early access
+          <a href="/docs" className="block text-sm text-white/60 hover:text-white py-1">Docs</a>
+          <a href="#pricing" className="block text-sm text-white/60 hover:text-white py-1">Pricing</a>
+          <a href="/dashboard" className="block text-sm text-white/60 hover:text-white py-1">Sign in</a>
+          <a href="#pricing" className="block text-sm text-center py-2 rounded-lg bg-harbor-500 text-white font-medium mt-4">
+            Get started
           </a>
         </div>
       )}
@@ -149,27 +144,8 @@ function Nav() {
   );
 }
 
-// ─── HERO ─────────────────────────────────────────────────────────────────────
+// âââ HERO âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Hero() {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email) return;
-    setLoading(true);
-    try {
-      await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-    } catch { /* fail silently */ }
-    setLoading(false);
-    setSubmitted(true);
-  }
-
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center pt-24 pb-20 px-6 overflow-hidden">
       {/* Background effects */}
@@ -181,7 +157,7 @@ function Hero() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-harbor-500/30 bg-harbor-500/10 text-harbor-400 text-xs font-medium mb-8 animate-fade-in">
           <div className="w-1.5 h-1.5 rounded-full bg-harbor-400 animate-pulse-ring" />
-          Now in private beta · 200+ APIs already monetizing
+          Now live Â· Start monetizing your API today
         </div>
 
         {/* Headline */}
@@ -205,61 +181,23 @@ function Hero() {
           <span className="text-white/80">one SDK, one line of code</span>.
         </p>
 
-        {/* Email CTA */}
-        <div id="waitlist" className="max-w-md mx-auto mb-12">
-          {submitted ? (
-            <div className="flex items-center justify-center gap-2 py-4 text-harbor-400">
-              <Check size={18} />
-              <span className="font-medium">You're on the list. We'll be in touch.</span>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                required
-                className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 text-sm focus:outline-none focus:border-harbor-500/60 focus:ring-1 focus:ring-harbor-500/30 transition"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-6 py-3 rounded-xl bg-harbor-500 hover:bg-harbor-400 text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-harbor-500/30 disabled:opacity-70 flex items-center gap-2 justify-center whitespace-nowrap"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>Get early access <ArrowRight size={15} /></>
-                )}
-              </button>
-            </form>
-          )}
-          <p className="text-xs text-white/25 mt-3">Free during beta · No credit card required</p>
-        </div>
-
-        {/* Social proof */}
-        <div className="flex items-center justify-center gap-3 mb-16">
-          <div className="flex -space-x-2">
-            {["A", "B", "C", "D", "E"].map((l, i) => (
-              <div
-                key={i}
-                className="w-8 h-8 rounded-full border-2 border-[#020617] flex items-center justify-center text-xs font-bold"
-                style={{
-                  background: ["#0369a1","#0284c7","#0ea5e9","#38bdf8","#7dd3fc"][i],
-                  zIndex: 5-i
-                }}
-              >
-                {l}
-              </div>
-            ))}
+        {/* CTA */}
+        <div className="max-w-md mx-auto mb-12">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="#pricing"
+              className="px-8 py-3.5 rounded-xl bg-harbor-500 hover:bg-harbor-400 text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-harbor-500/30 flex items-center gap-2 justify-center"
+            >
+              Get started <ArrowRight size={15} />
+            </a>
+            <a
+              href="/docs"
+              className="px-8 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-semibold transition-all flex items-center gap-2 justify-center"
+            >
+              Read the docs
+            </a>
           </div>
-          <div className="text-sm text-white/40">
-            <span className="text-white font-semibold">847</span> developers joined this week
-          </div>
-          <div className="flex items-center gap-1 text-yellow-400 text-xs">
-            {[...Array(5)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}
-          </div>
+          <p className="text-xs text-white/25 mt-3">No credit card required to get started</p>
         </div>
 
         {/* Code preview */}
@@ -271,11 +209,11 @@ function Hero() {
   );
 }
 
-// ─── CODE PREVIEW ─────────────────────────────────────────────────────────────
+// âââ CODE PREVIEW âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function CodePreview() {
   const [tab, setTab] = useState<"before" | "after">("after");
 
-  const before = `// The old way — build it all yourself 😩
+  const before = `// The old way â build it all yourself ð©
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
@@ -287,7 +225,7 @@ import { db } from './db';
 // billing webhooks, plan limits, analytics, SDKs...
 // Takes months. Breaks constantly.`;
 
-  const after = `// The Harbor way — one SDK, done ✨
+  const after = `// The Harbor way â one SDK, done â¨
 import { harbor } from '@harbor/sdk';
 
 const app = express();
@@ -304,8 +242,8 @@ app.use(harbor({
 }));
 
 app.get('/data', async (req, res) => {
-  // req.harbor.user — who's calling
-  // req.harbor.plan — their plan
+  // req.harbor.user â who's calling
+  // req.harbor.plan â their plan
   // Usage tracked. Billing automated.
   res.json({ data: await fetchData() });
 });`;
@@ -330,7 +268,7 @@ app.get('/data', async (req, res) => {
                   : "border-transparent text-white/30 hover:text-white/60"
               }`}
             >
-              {t === "after" ? "✨ With Harbor" : "😩 Without Harbor"}
+              {t === "after" ? "â¨ With Harbor" : "ð© Without Harbor"}
             </button>
           ))}
         </div>
@@ -369,7 +307,7 @@ function CodeHighlight({ code }: { code: string }) {
   );
 }
 
-// ─── HOW IT WORKS ─────────────────────────────────────────────────────────────
+// âââ HOW IT WORKS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function HowItWorks() {
   const steps = [
     {
@@ -391,7 +329,7 @@ function HowItWorks() {
       icon: <DollarSign size={20} />,
       title: "Start earning",
       desc: "Your users get API keys, a dashboard, and billing. Money lands in your Stripe account.",
-      code: "// harbor.dev/dashboard → $47,230 this month",
+      code: "// harbor.dev/dashboard â $47,230 this month",
     },
   ];
 
@@ -439,7 +377,7 @@ function HowItWorks() {
   );
 }
 
-// ─── FEATURES ─────────────────────────────────────────────────────────────────
+// âââ FEATURES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Features() {
   const features = [
     {
@@ -461,7 +399,7 @@ function Features() {
     {
       icon: <DollarSign size={22} />,
       title: "Usage-Based Billing",
-      desc: "Charge per API call, per token, per compute unit — or flat subscription. Stripe integration built in. You set the price.",
+      desc: "Charge per API call, per token, per compute unit â or flat subscription. Stripe integration built in. You set the price.",
       color: "from-green-500/20 to-green-600/5",
       border: "border-green-500/20",
       iconColor: "text-green-400",
@@ -485,7 +423,7 @@ function Features() {
     {
       icon: <Shield size={22} />,
       title: "Abuse Prevention",
-      desc: "Detect and block suspicious traffic automatically. IP allowlists, geo-blocking, anomaly detection — no config needed.",
+      desc: "Detect and block suspicious traffic automatically. IP allowlists, geo-blocking, anomaly detection â no config needed.",
       color: "from-red-500/20 to-red-600/5",
       border: "border-red-500/20",
       iconColor: "text-red-400",
@@ -509,7 +447,7 @@ function Features() {
     {
       icon: <Terminal size={22} />,
       title: "Local Dev & Testing",
-      desc: "Full-featured local emulator. Test billing flows, simulate quota hits, and debug webhooks — without touching production.",
+      desc: "Full-featured local emulator. Test billing flows, simulate quota hits, and debug webhooks â without touching production.",
       color: "from-pink-500/20 to-pink-600/5",
       border: "border-pink-500/20",
       iconColor: "text-pink-400",
@@ -550,7 +488,7 @@ function Features() {
   );
 }
 
-// ─── PRICING ─────────────────────────────────────────────────────────────────
+// âââ PRICING âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Pricing() {
   const [modal, setModal] = useState<{ plan: "pro" | "scale"; price: number } | null>(null);
 
@@ -684,62 +622,7 @@ function Pricing() {
   );
 }
 
-// ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
-function Testimonials() {
-  const quotes = [
-    {
-      text: "We were 3 months into building our own billing layer when we found Harbor. Switched in a day. Saved us 2 engineers and shipped 6 weeks early.",
-      name: "Maya Chen",
-      role: "CTO @ DataWeave",
-      avatar: "MC",
-    },
-    {
-      text: "Harbor is what Stripe was to e-commerce. I can't believe this didn't exist before. Every API company needs this.",
-      name: "James Okafor",
-      role: "Founder @ Inference Labs",
-      avatar: "JO",
-    },
-    {
-      text: "Set up Harbor on a Friday afternoon. By Monday morning we had 12 paying customers using our API. The portal is beautiful.",
-      name: "Sarah K.",
-      role: "Solo dev turned founder",
-      avatar: "SK",
-    },
-  ];
-
-  return (
-    <section className="py-20 px-6">
-      <div className="max-w-6xl mx-auto">
-        <p className="text-center text-harbor-400 text-sm font-semibold uppercase tracking-widest mb-12">
-          Loved by API builders
-        </p>
-        <div className="grid md:grid-cols-3 gap-5">
-          {quotes.map((q, i) => (
-            <div key={i} className="p-6 rounded-2xl gradient-border bg-white/[0.02]">
-              <div className="flex gap-0.5 mb-4">
-                {[...Array(5)].map((_, j) => (
-                  <Star key={j} size={12} className="text-yellow-400" fill="currentColor" />
-                ))}
-              </div>
-              <p className="text-sm text-white/70 leading-relaxed mb-5 italic">&quot;{q.text}&quot;</p>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-harbor-600 flex items-center justify-center text-xs font-bold">
-                  {q.avatar}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">{q.name}</p>
-                  <p className="text-xs text-white/40">{q.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── FOOTER ───────────────────────────────────────────────────────────────────
+// âââ FOOTER âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Footer() {
   return (
     <footer className="border-t border-white/5 py-16 px-6">
@@ -757,47 +640,40 @@ function Footer() {
             </p>
           </div>
 
-          {[
-            {
-              title: "Product",
-              links: ["Features", "Pricing", "Changelog", "Roadmap", "Status"],
-            },
-            {
-              title: "Developers",
-              links: ["Documentation", "SDK Reference", "API Reference", "Examples", "CLI"],
-            },
-            {
-              title: "Company",
-              links: ["About", "Blog", "Careers", "Privacy", "Terms"],
-            },
-          ].map((col) => (
-            <div key={col.title}>
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">
-                {col.title}
-              </p>
-              <ul className="space-y-2">
-                {col.links.map((l) => (
-                  <li key={l}>
-                    <a href="#" className="text-sm text-white/30 hover:text-white/70 transition-colors">
-                      {l}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">Product</p>
+            <ul className="space-y-2">
+              <li><a href="#pricing" className="text-sm text-white/30 hover:text-white/70 transition-colors">Pricing</a></li>
+              <li><a href="/docs" className="text-sm text-white/30 hover:text-white/70 transition-colors">Documentation</a></li>
+              <li><a href="/dashboard" className="text-sm text-white/30 hover:text-white/70 transition-colors">Dashboard</a></li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">Developers</p>
+            <ul className="space-y-2">
+              <li><a href="/docs" className="text-sm text-white/30 hover:text-white/70 transition-colors">Quick Start</a></li>
+              <li><a href="/docs#api-reference" className="text-sm text-white/30 hover:text-white/70 transition-colors">API Reference</a></li>
+              <li><a href="/docs#examples" className="text-sm text-white/30 hover:text-white/70 transition-colors">Examples</a></li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">Contact</p>
+            <ul className="space-y-2">
+              <li><a href="mailto:nicolugo0503@gmail.com" className="text-sm text-white/30 hover:text-white/70 transition-colors">Support</a></li>
+            </ul>
+          </div>
         </div>
 
         <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row justify-between gap-3 text-xs text-white/25">
-          <p>© 2025 Harbor Technologies, Inc.</p>
-          <p>Built with ♥ by developers, for developers</p>
+          <p>Â© 2026 Harbor Technologies, Inc.</p>
+          <p>Built with â¥ by developers, for developers</p>
         </div>
       </div>
     </footer>
   );
 }
 
-// ─── FINAL CTA ────────────────────────────────────────────────────────────────
+// âââ FINAL CTA ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function FinalCTA() {
   return (
     <section className="py-24 px-6">
@@ -815,10 +691,10 @@ function FinalCTA() {
               Stop spending months on billing infrastructure. Start earning from your API today.
             </p>
             <a
-              href="#waitlist"
+              href="#pricing"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-harbor-500 hover:bg-harbor-400 text-white font-bold text-base transition-all hover:shadow-xl hover:shadow-harbor-500/30"
             >
-              Get early access — it&apos;s free <ArrowRight size={18} />
+              Get started today <ArrowRight size={18} />
             </a>
           </div>
         </div>
@@ -827,7 +703,7 @@ function FinalCTA() {
   );
 }
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
+// âââ MAIN âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function Home() {
   return (
     <main>
@@ -835,7 +711,6 @@ export default function Home() {
       <Hero />
       <HowItWorks />
       <Features />
-      <Testimonials />
       <Pricing />
       <FinalCTA />
       <Footer />

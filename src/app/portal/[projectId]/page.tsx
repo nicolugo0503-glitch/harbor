@@ -1,27 +1,20 @@
 import { notFound } from "next/navigation";
-import { kv } from "@vercel/kv";
-
-interface Project { id: string; name: string; ownerEmail: string; createdAt: string; }
-interface ApiKey { id: string; name: string; key: string; plan: string; callsThisMonth?: number; }
-
-async function getProjectData(projectId: string) {
-  const project = await kv.get<Project>(`project:${projectId}`);
-  if (!project) return null;
-  const keyIds: string[] = await kv.smembers(`project:${projectId}:keys`) || [];
-  const keys = (await Promise.all(keyIds.map(id => kv.get<ApiKey>(`apikey:${id}`)))).filter(Boolean) as ApiKey[];
-  return { project, keys };
-}
+import { getProject, listKeys } from "@/lib/kv";
 
 export async function generateMetadata({ params }: { params: { projectId: string } }) {
-  const data = await getProjectData(params.projectId);
-  const name = data?.project?.name || "API";
-  return { title: `${name} — API Keys`, description: `Manage your ${name} API keys` };
+  const project = await getProject(params.projectId);
+  const name = project?.name || "API";
+  return {
+    title: `${name} — API Keys`,
+    description: `Manage your ${name} API keys`,
+  };
 }
 
 export default async function PortalPage({ params }: { params: { projectId: string } }) {
-  const data = await getProjectData(params.projectId);
-  if (!data) notFound();
-  const { project, keys } = data;
+  const project = await getProject(params.projectId);
+  if (!project) notFound();
+
+  const keys = await listKeys(params.projectId);
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff", fontFamily: "system-ui,sans-serif" }}>
@@ -41,8 +34,8 @@ export default async function PortalPage({ params }: { params: { projectId: stri
         <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "24px 28px", marginBottom: 28 }}>
           <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>Your API Keys</div>
           <p style={{ color: "#666", lineHeight: 1.6, margin: 0 }}>
-            Use these keys to authenticate requests to the {project.name} API. 
-            Include your key as the <code style={{ background: "#1a1a1a", padding: "1px 6px", borderRadius: 4, fontSize: 13 }}>x-harbor-key</code> header.
+            Use these keys to authenticate requests to the {project.name} API. Include your key as the{" "}
+            <code style={{ background: "#1a1a1a", padding: "1px 6px", borderRadius: 4, fontSize: 13 }}>x-harbor-key</code> header.
           </p>
         </div>
 
@@ -54,21 +47,19 @@ export default async function PortalPage({ params }: { params: { projectId: stri
             <div style={{ fontSize: 13, marginTop: 6 }}>Contact the {project.name} team to get access.</div>
           </div>
         ) : (
-          keys.map(key => (
+          keys.filter(k => k.active).map(key => (
             <div key={key.id} style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: 10, padding: "20px 24px", marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{key.name}</div>
                   <span style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 4, padding: "2px 8px", fontSize: 11, color: "#888", marginTop: 4, display: "inline-block" }}>
-                    {key.plan}
+                    {project.plan}
                   </span>
                 </div>
-                {key.callsThisMonth !== undefined && (
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>{key.callsThisMonth.toLocaleString()}</div>
-                    <div style={{ fontSize: 11, color: "#555" }}>calls this month</div>
-                  </div>
-                )}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{(key.callsThisMonth || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: 11, color: "#555" }}>calls this month</div>
+                </div>
               </div>
               <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <code style={{ fontSize: 13, color: "#888", letterSpacing: 0.5 }}>{key.key}</code>
@@ -82,11 +73,9 @@ export default async function PortalPage({ params }: { params: { projectId: stri
         <div style={{ marginTop: 32, background: "#111", border: "1px solid #1a1a1a", borderRadius: 10, padding: "20px 24px" }}>
           <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14, color: "#888" }}>QUICK START</div>
           <pre style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 8, padding: "14px 16px", fontSize: 12, color: "#ccc", overflow: "auto", margin: 0 }}>
-{keys.length > 0
-  ? `curl https://your-api.com/endpoint \\
-  -H "x-harbor-key: ${keys[0].key}"`
-  : `curl https://your-api.com/endpoint \\
-  -H "x-harbor-key: YOUR_API_KEY"`}
+            {keys.length > 0
+              ? `curl https://your-api.com/endpoint \\\n  -H "x-harbor-key: ${keys[0].key}"`
+              : `curl https://your-api.com/endpoint \\\n  -H "x-harbor-key: YOUR_API_KEY"`}
           </pre>
         </div>
 
@@ -96,4 +85,4 @@ export default async function PortalPage({ params }: { params: { projectId: stri
       </div>
     </div>
   );
-            }
+}

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { getProject } from "@/lib/kv";
 
+function ownerIdFromEmail(email: string): string {
+  return `stripe_${email.toLowerCase().replace(/[^a-z0-9]/gi, "_")}`;
+}
+
 // GET /api/analytics?projectId=xxx&email=xxx&days=7
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -16,7 +20,8 @@ export async function GET(req: NextRequest) {
   try {
     const project = await getProject(projectId);
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    if (project.ownerId !== email) {
+    const expectedOwnerId = ownerIdFromEmail(email);
+    if (project.ownerId !== expectedOwnerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
   } catch {

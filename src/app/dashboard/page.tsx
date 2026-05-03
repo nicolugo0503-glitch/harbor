@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Plus, Trash2, Key, Layers, ChevronRight, Eye, EyeOff, Check, RefreshCw, Zap, BarChart2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Copy, Plus, Trash2, Key, Layers, ChevronRight, Eye, EyeOff, Check, RefreshCw, Zap, BarChart2, LogOut, Mail } from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Project = {
   id: string;
@@ -24,7 +25,7 @@ type ApiKey = {
   active: boolean;
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PLAN_COLORS: Record<string, string> = {
   free: "bg-slate-700 text-slate-300",
@@ -46,7 +47,7 @@ function maskKey(key: string) {
   return key.slice(0, 12) + "••••••••••••••••••••" + key.slice(-4);
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -70,13 +71,90 @@ function Badge({ plan }: { plan: string }) {
   );
 }
 
-// ─── Main Dashboard ───────────────────────────────────────────────────────────────
+// ─── Email Gate ───────────────────────────────────────────────────────────────
+
+function EmailGate({ onEmail }: { onEmail: (email: string) => void }) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) {
+      setError("Enter a valid email address");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    // Store email and proceed — actual validation happens via Stripe webhook data
+    onEmail(trimmed);
+    setLoading(false);
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <div className="flex items-center gap-2.5 mb-8 justify-center">
+          <div className="w-9 h-9 rounded-xl bg-sky-500 flex items-center justify-center">
+            <Zap size={18} className="text-white" />
+          </div>
+          <span className="text-xl font-bold text-white">Harbor</span>
+        </div>
+
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 mx-auto mb-4">
+            <Mail size={22} className="text-sky-400" />
+          </div>
+          <h1 className="text-xl font-bold text-white text-center mb-1">Sign in to Dashboard</h1>
+          <p className="text-slate-400 text-sm text-center mb-6">
+            Enter the email you used to subscribe. We&apos;ll load your API keys.
+          </p>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              required
+              autoFocus
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition"
+            />
+            {error && <p className="text-red-400 text-xs">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-sky-600 hover:bg-sky-500 disabled:opacity-60 text-white py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                "Access my dashboard"
+              )}
+            </button>
+          </form>
+          <p className="text-center text-xs text-slate-500 mt-4">
+            No account?{" "}
+            <a href="/#pricing" className="text-sky-400 hover:text-sky-300">
+              Subscribe to a plan →
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const searchParams = useSearchParams();
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingKeys, setLoadingKeys] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newKeyName, setNewKeyName] = useState("");
@@ -85,26 +163,74 @@ export default function Dashboard() {
   const [showNewKey, setShowNewKey] = useState<ApiKey | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [showProjectForm, setShowProjectForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // ── On mount: check localStorage or session_id from Stripe ──
+  useEffect(() => {
+    const stored = localStorage.getItem("harbor_customer_email");
+    const sessionId = searchParams.get("session_id");
+    const isSuccess = searchParams.get("success") === "1";
+
+    if (stored) {
+      setCustomerEmail(stored);
+      if (isSuccess) setSuccessMessage("🎉 Payment successful! Your API keys are ready.");
+      return;
+    }
+
+    if (sessionId) {
+      setSessionLoading(true);
+      fetch(`/api/stripe/session?session_id=${sessionId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.email) {
+            localStorage.setItem("harbor_customer_email", data.email);
+            setCustomerEmail(data.email);
+            setSuccessMessage("🎉 Payment successful! Your API keys are ready below.");
+          }
+        })
+        .catch(() => {})
+        .finally(() => setSessionLoading(false));
+    }
+  }, [searchParams]);
+
+  function handleEmailSet(email: string) {
+    localStorage.setItem("harbor_customer_email", email);
+    setCustomerEmail(email);
+  }
+
+  function handleSignOut() {
+    localStorage.removeItem("harbor_customer_email");
+    setCustomerEmail(null);
+    setProjects([]);
+    setSelectedProject(null);
+    setKeys([]);
+  }
+
+  // ── API helpers with auth header ──
+  function authHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (customerEmail) headers["x-customer-email"] = customerEmail;
+    return headers;
+  }
 
   // ── Load projects ──
   const loadProjects = useCallback(async () => {
+    if (!customerEmail) return;
     setLoadingProjects(true);
     try {
-      const res = await fetch("/api/projects");
+      const res = await fetch("/api/projects", { headers: { "x-customer-email": customerEmail } });
       const data = await res.json();
       const sorted = (data.projects ?? []).sort(
         (a: Project, b: Project) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setProjects(sorted);
-      if (sorted.length > 0 && !selectedProject) {
-        setSelectedProject(sorted[0]);
-      }
+      if (sorted.length > 0) setSelectedProject((prev) => prev ?? sorted[0]);
     } catch {
-      // KV not set up yet — that's fine, show empty state
+      // KV not set up yet — show empty state
     } finally {
       setLoadingProjects(false);
     }
-  }, [selectedProject]);
+  }, [customerEmail]);
 
   // ── Load keys for selected project ──
   const loadKeys = useCallback(async (projectId: string) => {
@@ -120,11 +246,11 @@ export default function Dashboard() {
     }
   }, []);
 
-  useEffect(() => { loadProjects(); }, []);
+  useEffect(() => { if (customerEmail) loadProjects(); }, [customerEmail, loadProjects]);
   useEffect(() => {
     if (selectedProject) loadKeys(selectedProject.id);
     else setKeys([]);
-  }, [selectedProject]);
+  }, [selectedProject, loadKeys]);
 
   // ── Create project ──
   async function handleCreateProject(e: React.FormEvent) {
@@ -134,7 +260,7 @@ export default function Dashboard() {
     try {
       const res = await fetch("/api/projects", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ name: newProjectName.trim(), plan: "free" }),
       });
       const data = await res.json();
@@ -157,7 +283,7 @@ export default function Dashboard() {
     try {
       const res = await fetch("/api/keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ projectId: selectedProject.id, name: newKeyName.trim() }),
       });
       const data = await res.json();
@@ -176,7 +302,7 @@ export default function Dashboard() {
     if (!confirm("Revoke this key? Apps using it will stop working immediately.")) return;
     await fetch("/api/keys", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ keyId }),
     });
     setKeys((prev) => prev.map((k) => (k.id === keyId ? { ...k, active: false } : k)));
@@ -191,6 +317,23 @@ export default function Dashboard() {
     });
   }
 
+  // ── Loading spinner while resolving Stripe session ──
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-sky-500/30 border-t-sky-500 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-slate-400 text-sm">Loading your account…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Email gate ──
+  if (!customerEmail) {
+    return <EmailGate onEmail={handleEmailSet} />;
+  }
+
   // ── Render ──
   return (
     <div className="min-h-screen bg-[#0a0f1a] text-slate-100 flex">
@@ -203,6 +346,17 @@ export default function Dashboard() {
           </div>
           <span className="font-bold text-white text-lg">Harbor</span>
           <span className="ml-auto text-xs text-slate-500">v0.1</span>
+        </div>
+
+        {/* Customer email */}
+        <div className="px-5 py-3 border-b border-slate-800/50 flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-sky-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+            {customerEmail[0].toUpperCase()}
+          </div>
+          <span className="text-xs text-slate-400 truncate flex-1">{customerEmail}</span>
+          <button onClick={handleSignOut} title="Sign out" className="text-slate-600 hover:text-slate-400 transition-colors flex-shrink-0">
+            <LogOut size={13} />
+          </button>
         </div>
 
         {/* Projects list */}
@@ -271,13 +425,22 @@ export default function Dashboard() {
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-slate-800">
+        <div className="p-3 border-t border-slate-800 flex items-center justify-between">
           <a href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">← Back to site</a>
+          <a href="/#pricing" className="text-xs text-sky-600 hover:text-sky-400 transition-colors">Upgrade</a>
         </div>
       </aside>
 
       {/* ── Main content ── */}
       <main className="flex-1 overflow-y-auto">
+        {/* Success banner */}
+        {successMessage && (
+          <div className="bg-green-900/30 border-b border-green-700/40 px-8 py-3 flex items-center justify-between">
+            <p className="text-green-400 text-sm font-medium">{successMessage}</p>
+            <button onClick={() => setSuccessMessage("")} className="text-green-600 hover:text-green-400 text-xs">Dismiss</button>
+          </div>
+        )}
+
         {!selectedProject ? (
           // ── Empty state ──
           <div className="flex flex-col items-center justify-center h-full text-center p-12">
@@ -285,7 +448,9 @@ export default function Dashboard() {
               <Layers size={28} className="text-sky-400" />
             </div>
             <h2 className="text-xl font-semibold text-white mb-2">No project selected</h2>
-            <p className="text-slate-400 mb-6 max-w-sm">Create your first project to start generating API keys and monetizing your APIs.</p>
+            <p className="text-slate-400 mb-6 max-w-sm">
+              Create your first project to start generating API keys and monetizing your APIs.
+            </p>
             <button
               onClick={() => setShowProjectForm(true)}
               className="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -445,17 +610,21 @@ export default function Dashboard() {
             <div className="mt-6 bg-slate-800/30 border border-slate-700/50 rounded-xl">
               <div className="px-5 py-4 border-b border-slate-700/50">
                 <h2 className="font-semibold text-white">Quick Integration</h2>
-                <p className="text-slate-400 text-xs mt-0.5">Validate Harbor keys in your API in one line</p>
+                <p className="text-slate-400 text-xs mt-0.5">Use your API key in requests</p>
               </div>
               <div className="p-5 space-y-3">
                 {[
                   {
+                    lang: "cURL",
+                    code: `curl -H "X-Harbor-Key: hbr_live_your_key_here" https://your-api.com/endpoint`,
+                  },
+                  {
                     lang: "Node.js",
-                    code: `const { validateApiKey } = require("@harbor/sdk");\nconst key = await validateApiKey(req.headers["x-harbor-key"]);\nif (!key) return res.status(401).json({ error: "Unauthorized" });`,
+                    code: `const res = await fetch("https://your-api.com/endpoint", {\n  headers: { "X-Harbor-Key": "hbr_live_your_key_here" }\n});`,
                   },
                   {
                     lang: "Python",
-                    code: `from harbor import validate_key\nkey = validate_key(request.headers.get("X-Harbor-Key"))\nif not key: return jsonify(error="Unauthorized"), 401`,
+                    code: `import requests\nres = requests.get("https://your-api.com/endpoint",\n  headers={"X-Harbor-Key": "hbr_live_your_key_here"})`,
                   },
                 ].map(({ lang, code }) => (
                   <div key={lang}>

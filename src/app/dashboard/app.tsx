@@ -550,9 +550,9 @@ function BarChart({ data }: { data: AnalyticsPoint[] }) {
 }
 
 // âââ Main App ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function App() {
-  const [email, setEmail] = useState("");
-  const [loggedIn, setLoggedIn] = useState(false);
+export default function App({ email: initialEmail = "" }: { email?: string }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [loggedIn, setLoggedIn] = useState(!!initialEmail);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [tab, setTab] = useState<"overview" | "keys" | "analytics">("overview");
@@ -745,167 +745,134 @@ export default function App() {
       <nav className="nav">
         <a className="nav-logo" href="#">
           <div className="nav-logo-icon">â</div>
-           const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      if (res.ok) {
-        setLoggedIn(true);
-        showToast("Welcome back!", "ð");
-      } else {
-        const d = await res.json();
-        showToast(d.error || "Something went wrong", "â ");
-      }
-    } catch {
-      showToast("Network error â check connection", "â ");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ââ Load dashboard data ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  useEffect(() => {
-    if (!loggedIn) return;
-    const load = async () => {
-      setDataLoading(true);
-      try {
-        // Projects
-        const pRes = await fetch("/api/projects");
-        if (pRes.ok) {
-          const projects: Project[] = await pRes.json();
-          if (projects.length) setProject(projects[0]);
-        }
-        // Keys
-        const kRes = await fetch("/api/keys");
-        if (kRes.ok) {
-          const ks: ApiKey[] = await kRes.json();
-          setKeys(ks);
-        }
-        // Analytics
-        const aRes = await fetch("/api/analytics?days=7");
-        if (aRes.ok) {
-          const pts: AnalyticsPoint[] = await aRes.json();
-          setAnalytics(pts);
-          const tc = pts.reduce((s, p) => s + p.calls, 0);
-          const te = pts.reduce((s, p) => s + p.errors, 0);
-          const al = pts.length ? Math.round(pts.reduce((s, p) => s + p.latency, 0) / pts.length) : 0;
-          setTotalCalls(tc);
-          setTotalErrors(te);
-          setAvgLatency(al);
-        }
-      } catch {}
-      finally { setDataLoading(false); }
-    };
-    load();
-  }, [loggedIn]);
-
-  // ââ Copy key âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  const copyKey = useCallback((key: string) => {
-    navigator.clipboard.writeText(key).then(() => showToast("API key copied!", "ð"));
-  }, [showToast]);
-
-  // ââ Revoke key âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  const revokeKey = useCallback(async (key: string) => {
-    try {
-      await fetch("/api/keys", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
-      setKeys(prev => prev.filter(k => k.key !== key));
-      showToast("Key revoked", "ð");
-    } catch { showToast("Failed to revoke key", "â "); }
-  }, [showToast]);
-
-  // ââ Create key ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  const createKey = useCallback(async () => {
-    try {
-      const res = await fetch("/api/keys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label: "New key" }) });
-      if (res.ok) {
-        const newKey: ApiKey = await res.json();
-        setKeys(prev => [newKey, ...prev]);
-        showToast("New API key created!", "ð");
-      } else {
-        const d = await res.json();
-        showToast(d.error || "Failed to create key", "â ");
-      }
-    } catch { showToast("Network error", "â "); }
-  }, [showToast]);
-
-  // ââ Stripe Checkout ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  const checkout = useCallback(async (plan: "pro" | "scale") => {
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      if (res.ok) {
-        const { url } = await res.json();
-        window.location.href = url;
-      } else {
-        showToast("Checkout error â try again", "â ");
-      }
-    } catch { showToast("Network error", "â "); }
-  }, [showToast]);
-
-  const plan = project?.plan ?? "free";
-  const planColor = PLAN_COLORS[plan];
-  const callLimit = plan === "scale" ? Infinity : plan === "pro" ? 2_000_000 : 1_000;
-  const callPct = callLimit === Infinity ? 30 : Math.min((totalCalls / callLimit) * 100, 100);
-
-  // ââ Render Login âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  if (!loggedIn) return (
-    <>
-      <style>{CSS}</style>
-      <div className="bg-scene">
-        <div className="bg-grid" />
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
-        <div className="orb orb-3" />
-      </div>
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-logo">
-            <div className="login-logo-icon">â</div>
-          </div>
-          <h1 className="login-title">Welcome to Harbor</h1>
-          <p className="login-sub">Enter your email to access your dashboard</p>
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="form-label">Email address</label>
-              <input
-                className="form-input"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <button className="btn-login" type="submit" disabled={loading}>
-              {loading ? <><span className="spinner" style={{ borderWidth: 2, width: 16, height: 16 }} /> Signing inâ¦</> : "Continue â"}
+          <span className="nav-logo-text">Harbor</span>
+        </a>
+        <div className="nav-right">
+          <span className={`plan-badge plan-badge-${plan}`}>{PLAN_LABELS[plan]}</span>
+          {plan === "free" && (
+            <button className="nav-btn nav-btn-primary" onClick={() => setShowUpgradeModal(true)}>
+              Upgrade Plan
             </button>
-          </form>
+          )}
+          <button className="nav-btn nav-btn-ghost" onClick={() => setLoggedIn(false)}>Sign out</button>
         </div>
-      </div>
-      {toast && <div className="toast">{toast.icon} {toast.msg}</div>}
-    </>
-  );
+      </nav>
 
-  // ââ Render Dashboard ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  return (
-    <>
-      <style>{CSS}</style>
-      <div className="bg-scene">
-        <div className="bg-grid" />
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
-        <div className="orb orb-3" />
-      </div>
+      <main className="main">
+        {/* Hero */}
+        <div className="hero">
+          <div className="hero-greeting">Dashboard</div>
+          <h1 className="hero-title">{project?.name ?? "Your API Gateway"}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 8 }}>
+            <p className="hero-sub">{email}</p>
+            <div className="live-indicator">
+              <span className="live-dot" />
+              Live
+            </div>
+          </div>
+        </div>
 
-      {/* Nav */}
-      <nav className="nav">
-        <a className="nav-logo" href="#">
-          <div className="nav-logo-icon">â</div>
-                <div className="empty-state">
+        {/* Stats */}
+        {dataLoading ? (
+          <div className="loading-center"><span className="spinner" /> Loading analyticsâ¦</div>
+        ) : (
+          <div className="stats-grid">
+            {/* API Calls */}
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <div className="stat-card-icon" style={{ background: "rgba(99,102,241,0.15)" }}>ð¡</div>
+                <span className="stat-card-trend trend-up">â 7d</span>
+              </div>
+              <div className="stat-value">{callsCounter.toLocaleString()}</div>
+              <div className="stat-label">API Calls This Month</div>
+              <div className="stat-bar"><div className="stat-bar-fill" style={{ width: `${callPct}%`, background: "linear-gradient(90deg,#6366f1,#8b5cf6)" }} /></div>
+            </div>
+            {/* Keys */}
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <div className="stat-card-icon" style={{ background: "rgba(16,185,129,0.15)" }}>ð</div>
+                <span className="stat-card-trend trend-neutral">Active</span>
+              </div>
+              <div className="stat-value">{keysCounter}</div>
+              <div className="stat-label">API Keys</div>
+              <div className="stat-bar"><div className="stat-bar-fill" style={{ width: `${Math.min(keys.length * 20, 100)}%`, background: "linear-gradient(90deg,#10b981,#059669)" }} /></div>
+            </div>
+            {/* Errors */}
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <div className="stat-card-icon" style={{ background: "rgba(239,68,68,0.12)" }}>â ï¸</div>
+                <span className={`stat-card-trend ${totalErrors === 0 ? "trend-up" : "trend-down"}`}>{totalErrors === 0 ? "Clean" : "â Errors"}</span>
+              </div>
+              <div className="stat-value">{errorsCounter}</div>
+              <div className="stat-label">Errors (7d)</div>
+              <div className="stat-bar"><div className="stat-bar-fill" style={{ width: `${totalCalls ? Math.min((totalErrors / totalCalls) * 100, 100) : 0}%`, background: "linear-gradient(90deg,#ef4444,#dc2626)" }} /></div>
+            </div>
+            {/* Latency */}
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <div className="stat-card-icon" style={{ background: "rgba(245,158,11,0.12)" }}>â¡</div>
+                <span className="stat-card-trend trend-up">Fast</span>
+              </div>
+              <div className="stat-value">{latencyCounter}<span style={{ fontSize: 14, color: "#64748b", fontWeight: 400 }}>ms</span></div>
+              <div className="stat-label">Avg Latency</div>
+              <div className="stat-bar"><div className="stat-bar-fill" style={{ width: `${Math.min(avgLatency / 2, 100)}%`, background: "linear-gradient(90deg,#f59e0b,#d97706)" }} /></div>
+            </div>
+          </div>
+        )}
+
+        {/* Panel */}
+        <div className="panel">
+          <div className="tabs">
+            {(["overview","keys","analytics"] as const).map(t => (
+              <button key={t} className={`tab-btn ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
+                {t === "overview" && "ð"} {t === "keys" && "ð"} {t === "analytics" && "ð"}
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {t === "keys" && keys.length > 0 && <span className="tab-dot">{keys.length}</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className="tab-content">
+            {/* Overview Tab */}
+            {tab === "overview" && (
+              <div>
+                <div className="overview-top">
+                  <BarChart data={analytics.length ? analytics : Array.from({ length: 7 }, (_, i) => ({
+                    date: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i],
+                    calls: 0, errors: 0, latency: 0
+                  }))} />
+                  <div className="quick-stats">
+                    <div className="quick-stat">
+                      <div className="quick-stat-label">Plan</div>
+                      <div className="quick-stat-value" style={{ color: planColor }}>{PLAN_LABELS[plan]}</div>
+                      <div className="quick-stat-sub">{plan === "scale" ? "Unlimited calls" : plan === "pro" ? "2M calls/mo" : "1k calls/mo"}</div>
+                    </div>
+                    <div className="quick-stat">
+                      <div className="quick-stat-label">Retention</div>
+                      <div className="quick-stat-value">{plan === "scale" ? "365" : plan === "pro" ? "90" : "30"}<span style={{ fontSize: 14, fontWeight: 400, color: "#64748b" }}>d</span></div>
+                      <div className="quick-stat-sub">Analytics history</div>
+                    </div>
+                    <div className="quick-stat">
+                      <div className="quick-stat-label">Projects</div>
+                      <div className="quick-stat-value">{plan === "scale" ? "â" : plan === "pro" ? "10" : "1"}</div>
+                      <div className="quick-stat-sub">Max projects</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Keys Tab */}
+            {tab === "keys" && (
+              <div>
+                <div className="keys-header">
+                  <h2 className="keys-title">API Keys</h2>
+                  <button className="btn-create" onClick={createKey}>
+                    <span>+</span> New Key
+                  </button>
+                </div>
+                {keys.length === 0 ? (
+                  <div className="empty-state">
                     <div className="empty-icon">ð</div>
                     <div className="empty-title">No API keys yet</div>
                     <div className="empty-sub">Create your first key to start making authenticated requests.</div>

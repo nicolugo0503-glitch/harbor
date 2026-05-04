@@ -57,7 +57,7 @@ function CheckoutModal({
             Subscribe to Harbor {plan.charAt(0).toUpperCase() + plan.slice(1)}
           </p>
           <h3 className="text-2xl font-bold text-white">${price}/month</h3>
-          <p className="text-white/40 text-sm mt-1">Cancel anytime Â· Instant setup</p>
+          <p className="text-white/40 text-sm mt-1">Cancel anytime · Instant setup</p>
         </div>
         <form onSubmit={handleCheckout} className="space-y-4">
           <div>
@@ -85,7 +85,7 @@ function CheckoutModal({
             )}
           </button>
           <p className="text-center text-xs text-white/25">
-            You&apos;ll be redirected to Stripe Â· Secured by 256-bit encryption
+            You&apos;ll be redirected to Stripe · Secured by 256-bit encryption
           </p>
         </form>
       </div>
@@ -115,7 +115,7 @@ function Nav() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <a href="/dashboard" className="text-sm text-white/60 hover:text-white transition-colors">Sign in</a>
+          <a href="/login" className="text-sm text-white/60 hover:text-white transition-colors">Sign in</a>
           <a
             href="#pricing"
             className="text-sm px-4 py-2 rounded-lg bg-harbor-500 hover:bg-harbor-400 text-white font-medium transition-all hover:shadow-lg hover:shadow-harbor-500/25"
@@ -134,7 +134,7 @@ function Nav() {
         <div className="md:hidden border-t border-white/5 bg-[#020617] px-6 py-4 space-y-3">
           <a href="/docs" className="block text-sm text-white/60 hover:text-white py-1">Docs</a>
           <a href="#pricing" className="block text-sm text-white/60 hover:text-white py-1">Pricing</a>
-          <a href="/dashboard" className="block text-sm text-white/60 hover:text-white py-1">Sign in</a>
+          <a href="/login" className="block text-sm text-white/60 hover:text-white py-1">Sign in</a>
           <a href="#pricing" className="block text-sm text-center py-2 rounded-lg bg-harbor-500 text-white font-medium mt-4">
             Get started
           </a>
@@ -157,7 +157,7 @@ function Hero() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-harbor-500/30 bg-harbor-500/10 text-harbor-400 text-xs font-medium mb-8 animate-fade-in">
           <div className="w-1.5 h-1.5 rounded-full bg-harbor-400 animate-pulse-ring" />
-          Now live Â· Start monetizing your API today
+          Now live · Start monetizing your API today
         </div>
 
         {/* Headline */}
@@ -213,7 +213,7 @@ function Hero() {
 function CodePreview() {
   const [tab, setTab] = useState<"before" | "after">("after");
 
-  const before = `// The old way â build it all yourself ð©
+  const before = `// The old way â build it all yourself ©
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
@@ -268,7 +268,7 @@ app.get('/data', async (req, res) => {
                   : "border-transparent text-white/30 hover:text-white/60"
               }`}
             >
-              {t === "after" ? "â¨ With Harbor" : "ð© Without Harbor"}
+              {t === "after" ? "â¨ With Harbor" : "© Without Harbor"}
             </button>
           ))}
         </div>
@@ -645,7 +645,7 @@ function Footer() {
             <ul className="space-y-2">
               <li><a href="#pricing" className="text-sm text-white/30 hover:text-white/70 transition-colors">Pricing</a></li>
               <li><a href="/docs" className="text-sm text-white/30 hover:text-white/70 transition-colors">Documentation</a></li>
-              <li><a href="/dashboard" className="text-sm text-white/30 hover:text-white/70 transition-colors">Dashboard</a></li>
+              <li><a href="/signup" className="text-sm text-white/30 hover:text-white/70 transition-colors">Dashboard</a></li>
             </ul>
           </div>
           <div>

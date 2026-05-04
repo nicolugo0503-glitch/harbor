@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
-import { validateApiKey } from "@/lib/kv";
+import { validateApiKey, getProject } from "@/lib/kv";
+
+// Monthly call limits per plan
+const PLAN_LIMITS: Record<string, number> = {
+  free: 1_000,
+  pro: 100_000,
+  scale: Infinity,
+};
 
 async function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number }> {
   const now = Date.now();
@@ -53,7 +60,10 @@ async function logCall(data: {
 
 async function handleValidate(req: NextRequest) {
   const start = Date.now();
-  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  const ip =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
   const country = req.headers.get("x-vercel-ip-country") || "unknown";
 
   const { allowed, remaining } = await checkRateLimit(ip);
@@ -117,22 +127,44 @@ async function handleValidate(req: NextRequest) {
     );
   }
 
-  void logCall({
-    keyId: keyData.id,
-    projectId: keyData.projectId,
-    valid: true,
-    ip,
-    latencyMs,
-    plan: "pro",
-  });
+  // Fetch the project to get the real plan
+  const project = await getProject(keyData.projectId).catch(() => null);
+  const plan: "free" | "pro" | "scale" = (project?.plan ?? "pro") as "free" | "pro" | "scale";
+
+  // Enforce monthly call limits
+  const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.pro;
+  const callsThisMonth = keyData.callsThisMonth || 0;
+  if (callsThisMonth > limit) {
+    void logCall({ keyId: keyData.id, projectId: keyData.projectId, valid: false, ip, latencyMs, plan });
+    return NextResponse.json(
+      {
+        valid: false,
+        error: `Monthly call limit reached (${limit.toLocaleString()} calls for ${plan} plan). Upgrade to continue.`,
+        plan,
+        callsThisMonth,
+        limit,
+      },
+      {
+        status: 429,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "X-RateLimit-Remaining": String(remaining),
+          "X-Harbor-Plan": plan,
+        },
+      }
+    );
+  }
+
+  void logCall({ keyId: keyData.id, projectId: keyData.projectId, valid: true, ip, latencyMs, plan });
 
   return NextResponse.json(
     {
       valid: true,
       keyId: keyData.id,
       projectId: keyData.projectId,
-      plan: "pro",
-      callsThisMonth: keyData.callsThisMonth || 0,
+      plan,
+      callsThisMonth,
+      limit: limit === Infinity ? null : limit,
       name: keyData.name,
       country,
     },
@@ -142,6 +174,7 @@ async function handleValidate(req: NextRequest) {
         "Access-Control-Allow-Origin": "*",
         "X-RateLimit-Remaining": String(remaining),
         "X-Harbor-Latency": String(latencyMs),
+        "X-Harbor-Plan": plan,
       },
     }
   );

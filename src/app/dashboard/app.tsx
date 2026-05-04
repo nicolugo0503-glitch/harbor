@@ -153,7 +153,12 @@ export default function DashboardApp({ email }: { email: string }) {
         <div style={S.navRight}>
           <span style={S.navEmail}>{email}</span>
           <button
-            onClick={() => window.open("/api/stripe/session", "_blank")}
+            onClick={async () => {
+            const r = await fetch("/api/stripe/checkout", { method: "POST" });
+            const d = await r.json();
+            if (d.url) window.location.href = d.url;
+            else alert("Could not open upgrade page. Please try again.");
+          }}
             style={{ ...S.logoutBtn, color: "#0ea5e9", borderColor: "rgba(14,165,233,0.3)" }}
           >
             Upgrade plan
@@ -273,7 +278,12 @@ export default function DashboardApp({ email }: { email: string }) {
                       <div style={{ fontSize: 13, color: "#475569", marginTop: 2 }}>Up to 2M calls/mo, full analytics, webhooks &amp; more</div>
                     </div>
                     <button
-                      onClick={() => window.open("/api/stripe/session", "_blank")}
+                      onClick={async () => {
+            const r = await fetch("/api/stripe/checkout", { method: "POST" });
+            const d = await r.json();
+            if (d.url) window.location.href = d.url;
+            else alert("Could not open upgrade page. Please try again.");
+          }}
                       style={{ ...S.btnPrimary, whiteSpace: "nowrap" as const }}
                     >
                       Upgrade to Pro &rarr;

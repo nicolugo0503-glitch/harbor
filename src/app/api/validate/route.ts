@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { validateApiKey, getProject } from "@/lib/kv";
 
-// Monthly call limits per plan
+// Monthly call limits per plan — must match what the UI advertises
 const PLAN_LIMITS: Record<string, number> = {
   free: 1_000,
-  pro: 100_000,
-  scale: Infinity,
+  pro: 2_000_000,   // "Up to 2M API calls/mo"
+  scale: Infinity,  // "Unlimited API calls"
 };
 
 async function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number }> {
@@ -35,10 +35,13 @@ async function logCall(data: {
     const now = new Date();
     const dateKey = now.toISOString().split("T")[0];
     const hour = now.getUTCHours();
+    // Analytics retention: 90 days for pro, 365 days for scale, 30 for free
+    const retentionDays = data.plan === "scale" ? 365 : data.plan === "pro" ? 90 : 30;
+    const retentionSecs = retentionDays * 24 * 60 * 60;
     await kv.hincrby(`analytics:${data.projectId}:${dateKey}`, `h${hour}`, 1);
-    await kv.expire(`analytics:${data.projectId}:${dateKey}`, 60 * 60 * 24 * 92);
+    await kv.expire(`analytics:${data.projectId}:${dateKey}`, retentionSecs);
     await kv.incr(`analytics:key:${data.keyId}:${dateKey}`);
-    await kv.expire(`analytics:key:${data.keyId}:${dateKey}`, 60 * 60 * 24 * 92);
+    await kv.expire(`analytics:key:${data.keyId}:${dateKey}`, retentionSecs);
     const logEntry = JSON.stringify({
       ts: now.toISOString(),
       keyId: data.keyId,
@@ -49,7 +52,7 @@ async function logCall(data: {
     });
     await kv.lpush(`calllog:${data.projectId}`, logEntry);
     await kv.ltrim(`calllog:${data.projectId}`, 0, 499);
-    await kv.expire(`calllog:${data.projectId}`, 60 * 60 * 24 * 30);
+    await kv.expire(`calllog:${data.projectId}`, retentionSecs);
     if (data.valid) {
       await kv.incr(`analytics:${data.projectId}:valid:${dateKey}`);
     } else {
@@ -134,7 +137,7 @@ async function handleValidate(req: NextRequest) {
   // Enforce monthly call limits
   const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.pro;
   const callsThisMonth = keyData.callsThisMonth || 0;
-  if (callsThisMonth > limit) {
+  if (isFinite(limit) && callsThisMonth > limit) {
     void logCall({ keyId: keyData.id, projectId: keyData.projectId, valid: false, ip, latencyMs, plan });
     return NextResponse.json(
       {
@@ -164,7 +167,7 @@ async function handleValidate(req: NextRequest) {
       projectId: keyData.projectId,
       plan,
       callsThisMonth,
-      limit: limit === Infinity ? null : limit,
+      limit: isFinite(limit) ? limit : null,
       name: keyData.name,
       country,
     },

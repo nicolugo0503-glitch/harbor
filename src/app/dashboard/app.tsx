@@ -90,7 +90,7 @@ function LineChart({ data }: { data: AnalyticsPoint[] }) {
   const path = pts.length < 2 ? '' : pts.reduce((acc,[x,y],i) => {
     if (i===0) return `M${x},${y}`;
     const [px,py]=pts[i-1];
-    return `${acc} C${px+(x-px)/2.2},${py} ${x-(x-px)/2.2},${y} ${x},${y}`;
+    return `${acc} C${px+(x-px)/2.2},${px} ${x-(x-px)/2.2},${y} ${x},${y}`;
   }, '');
   const area = pts.length < 2 ? '' : `${path} L${pts[pts.length-1][0]},${H} L${pts[0][0]},${H} Z`;
 
@@ -314,7 +314,7 @@ function ReviewCarousel() {
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
-const CSS = `
+const CSS_LIT
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;background:#030712;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;overflow:hidden}
@@ -477,7 +477,7 @@ const CSS = `
 
   /* Activity feed */
   .feed-wrap{max-height:220px;overflow-y:auto}
-  .feed-row{display:grid;grid-template-columns:52px 1fr 40px 55px 70px;gap:8px;align-items:center;
+  .feed-row{display:grid;grid-template-columns;52px 1fr 40px 55px 70px;gap:8px;align-items:center;
     padding:8px 18px;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s;animation:feedIn 0.3s ease}
   .feed-row:hover{background:rgba(255,255,255,0.02)}
   .method-badge{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;
@@ -928,16 +928,16 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
             {/* Usage bar */}
             <div style={{padding:'10px 8px 12px',borderBottom:'1px solid rgba(255,255,255,0.05)',marginBottom:8}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                <span style={{fontSize:11,color:#374151,fontWeight:600}}>API Utsage</span>
+                <span style={{fontSize:11,color:'#374151',fontWeight:600}}>API Usage</span>
                 <span style={{fontSize:11,color:'#6366f1',fontWeight:600}}>
-                  {callLimit===Infinity?'∧':`${Math.round(callPct)}%`}
+                  {callLimit===Infinity?'∞':`${Math.round(callPct)}%`}
                 </span>
               </div>
               <div className="usage-track">
                 <div className="usage-fill" style={{width:`${callPct}%`,background:'linear-gradient(90deg,#6366f1,#8b5cf6)'}}/>
               </div>
               <div style={{marginTop:4,fontSize:10,color:'#1f2937'}}>
-                {totalCalls.toLocaleString()} / {callLimit===Infinity?'∧':callLimit.toLocaleString()}
+                {totalCalls.toLocaleString()} / {callLimit===Infinity?'∞':callLimit.toLocaleString()}
               </div>
             </div>
             <div className="sb-user" onClick={()=>setLoggedIn(false)} title="Sign out">
@@ -960,7 +960,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
             <span>99.98% uptime</span>
             <span className="s-sep">·</span>
             <span>API p50 &lt;12ms</span>
-             <span className="s-sep">·</span>
+            <span className="s-sep">·</span>
             <span>3 regions active</span>
           </div>
 
@@ -1162,7 +1162,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                       <span>+</span> New Key
                     </button>
                   </div>
-                  {keys.length===0 ? (
+                 {keys.length===0 ? (
                     <div className="empty-keys">
                       <div className="empty-icon">🔑</div>
                       <div className="empty-title">No API keys yet</div>
@@ -1177,7 +1177,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                         ))}
                       </div>
                       {keys.map(k=>(
-                        <div key={k.key} className="key-row">
+                        <div key={k.key} cla!ssName="key-row">
                           <div className="key-mono">
                             <span className="key-led"/>
                             {k.key.slice(0,8)}…{k.key.slice(-6)}
@@ -1229,7 +1229,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                 </div>
                 <div className="panel" style={{marginBottom:14}}>
                   <div className="panel-header">
-                    <span className="panel-title">API Cvalls └ Last 7 Days</span>
+                    <span className="panel-title">API Calls — Last 7 Days</span>
                   </div>
                   <div className="panel-body">
                     <div style={{height:200}}>
@@ -1245,8 +1245,8 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                   </div>
                   <div className="panel-body">
                     <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
-                      <span style={{fontSize:14,color:#94a3b8}}>{totalCalls.toLocaleString()} used</span>
-                      <span style={{fontSize:14,color:'#374151'}}>{callLimit===Infinity?'Unlimited':`${callLimit.toLocaleString()} limit`}</span>
+                      <span style={{fontSize:14,color:'#94a3b8'}}>{totalCalls.toLocaleString()} used</span>
+                      <span style={{fontSize:14,color:'#374151'}}>{callLimit===Infinity?'Unlimited':`${callLimit.toLocaleString()} limit`}</span>
                     </div>
                     <div className="usage-track" style={{height:10,borderRadius:5}}>
                       <div className="usage-fill" style={{width:`${callPct}%`,background:'linear-gradient(90deg,#6366f1,#8b5cf6)'}}/>

@@ -1,14 +1,14 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// âââ Types ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Project { id: string; name: string; plan: "free"|"pro"|"scale"; createdAt: string; callsThisMonth?: number; }
 interface ApiKey { key: string; createdAt: string; label?: string; active: boolean; }
 interface AnalyticsPoint { date: string; calls: number; errors: number; latency: number; }
 interface ActivityItem { id: number; method: string; path: string; status: number; latency: number; region: string; time: string; }
 interface ChatMsg { role: "user"|"bot"; text: string; }
 
-// âââ Hooks ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Hooks ────────────────────────────────────────────────────────────────────
 function useCounter(target: number, duration = 1400) {
   const [value, setValue] = useState(0);
   const raf = useRef<number>(0);
@@ -27,7 +27,7 @@ function useCounter(target: number, duration = 1400) {
   return value;
 }
 
-// âââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 let _aid = 0;
 function genActivity(): ActivityItem {
   const methods = ['GET','POST','GET','GET','PUT','GET','DELETE'];
@@ -45,7 +45,7 @@ function genActivity(): ActivityItem {
   };
 }
 
-// âââ Logo (consistent across all pages) ââââââââââââââââââââââââââââââââââââââ
+// ─── Logo (consistent across all pages) ──────────────────────────────────────
 function HarborLogo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,7 +65,7 @@ function HarborLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-// âââ Sparkline ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Sparkline ────────────────────────────────────────────────────────────────
 function Sparkline({ vals, color }: { vals: number[]; color: string }) {
   if (vals.length < 2) return null;
   const W=64, H=20;
@@ -79,7 +79,7 @@ function Sparkline({ vals, color }: { vals: number[]; color: string }) {
   );
 }
 
-// âââ SVG Line Chart âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── SVG Line Chart ───────────────────────────────────────────────────────────
 function LineChart({ data }: { data: AnalyticsPoint[] }) {
   const W=500, H=150, PX=8, PY=8;
   const vals = data.map(d=>d.calls);
@@ -125,15 +125,15 @@ function LineChart({ data }: { data: AnalyticsPoint[] }) {
   );
 }
 
-// âââ Command Palette ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Command Palette ──────────────────────────────────────────────────────────
 const CMD = [
-  {icon:'ð', label:'Overview', action:'nav:overview', kbd:'G O'},
-  {icon:'ð', label:'API Keys', action:'nav:keys', kbd:'G K'},
-  {icon:'ð', label:'Analytics', action:'nav:analytics', kbd:'G A'},
-  {icon:'â¦', label:'Create new API key', action:'create:key', kbd:''},
-  {icon:'â¬', label:'Upgrade plan', action:'upgrade', kbd:''},
-  {icon:'ð', label:'View Documentation', action:'docs', kbd:''},
-  {icon:'ðª', label:'Sign out', action:'signout', kbd:''},
+  {icon:'📊', label:'Overview', action:'nav:overview', kbd:'G O'},
+  {icon:'🔑', label:'API Keys', action:'nav:keys', kbd:'G K'},
+  {icon:'📈', label:'Analytics', action:'nav:analytics', kbd:'G A'},
+  {icon:'✦', label:'Create new API key', action:'create:key', kbd:''},
+  {icon:'⬆', label:'Upgrade plan', action:'upgrade', kbd:''},
+  {icon:'📖', label:'View Documentation', action:'docs', kbd:''},
+  {icon:'🚪', label:'Sign out', action:'signout', kbd:''},
 ];
 
 function CommandPalette({ onClose, onAction }: { onClose:()=>void; onAction:(a:string)=>void }) {
@@ -150,8 +150,8 @@ function CommandPalette({ onClose, onAction }: { onClose:()=>void; onAction:(a:s
     <div className="cmd-backdrop" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
       <div className="cmd-box">
         <div className="cmd-row">
-          <span style={{fontSize:16,color:'#4b5563'}}>â</span>
-          <input ref={ref} className="cmd-input" placeholder="Search commandsâ¦" value={q} onChange={e=>setQ(e.target.value)}/>
+          <span style={{fontSize:16,color:'#4b5563'}}>⌕</span>
+          <input ref={ref} className="cmd-input" placeholder="Search commands…" value={q} onChange={e=>setQ(e.target.value)}/>
           <span className="cmd-esc">ESC</span>
         </div>
         <div className="cmd-results">
@@ -169,18 +169,18 @@ function CommandPalette({ onClose, onAction }: { onClose:()=>void; onAction:(a:s
   );
 }
 
-// âââ Chat Bot âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Chat Bot ─────────────────────────────────────────────────────────────────
 const BOT_REPLIES: Record<string,string> = {
   default: "I'm Harbor's support bot! Ask me anything about API keys, billing, or usage limits.",
-  hello: "Hey there! ð How can I help you with Harbor today?",
-  pricing: "Harbor offers three plans:\nâ¢ **Free** â 1K calls/mo, 1 project\nâ¢ **Pro** â $49/mo, 2M calls, 10 projects\nâ¢ **Scale** â $299/mo, unlimited everything\n\nWant to upgrade?",
+  hello: "Hey there! 👋 How can I help you with Harbor today?",
+  pricing: "Harbor offers three plans:\n• **Free** — 1K calls/mo, 1 project\n• **Pro** — $49/mo, 2M calls, 10 projects\n• **Scale** — $299/mo, unlimited everything\n\nWant to upgrade?",
   key: "You can create API keys from the **Keys** tab in your dashboard. Each key can be revoked individually and carries your project's rate limits.",
-  rate: "Rate limits depend on your plan:\nâ¢ Free: 1,000 calls/month\nâ¢ Pro: 2,000,000 calls/month\nâ¢ Scale: Unlimited\n\nAll plans include per-minute burst protection.",
+  rate: "Rate limits depend on your plan:\n• Free: 1,000 calls/month\n• Pro: 2,000,000 calls/month\n• Scale: Unlimited\n\nAll plans include per-minute burst protection.",
   error: "If you're seeing errors, check:\n1. Your API key is active\n2. You haven't exceeded your rate limit\n3. The request format matches our docs at /docs",
   billing: "Billing is handled securely via Stripe. You can upgrade from your dashboard or email support@harbor.dev for billing questions.",
   latency: "Harbor's median p50 latency is under 15ms globally. We have edge nodes in US, EU, and APAC regions.",
   contact: "Reach us at support@harbor.dev or use this chat. We typically respond within 2 hours on business days.",
-  docs: "Full documentation is available at harbor.dev/docs â covering REST API, SDKs for Node, Python, Go, and Rust.",
+  docs: "Full documentation is available at harbor.dev/docs — covering REST API, SDKs for Node, Python, Go, and Rust.",
 };
 
 function getBotReply(msg: string): string {
@@ -200,7 +200,7 @@ function getBotReply(msg: string): string {
 function ChatBot() {
   const [open,setOpen]=useState(false);
   const [msgs,setMsgs]=useState<ChatMsg[]>([
-    {role:'bot', text:"ð Hi! I'm Harbor's support assistant. How can I help you today?"}
+    {role:'bot', text:"👋 Hi! I'm Harbor's support assistant. How can I help you today?"}
   ]);
   const [input,setInput]=useState('');
   const [typing,setTyping]=useState(false);
@@ -228,16 +228,16 @@ function ChatBot() {
         <div className="chatbot-window">
           <div className="chatbot-header">
             <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <div className="chatbot-avatar">â</div>
+              <div className="chatbot-avatar">⚓</div>
               <div>
                 <div style={{fontSize:14,fontWeight:700,color:'#f1f5f9'}}>Harbor Support</div>
                 <div style={{fontSize:11,color:'#34d399',display:'flex',alignItems:'center',gap:4}}>
                   <span style={{width:6,height:6,borderRadius:'50%',background:'#34d399',display:'inline-block'}}/>
-                  Online Â· Replies in seconds
+                  Online · Replies in seconds
                 </div>
               </div>
             </div>
-            <button className="chatbot-close" onClick={()=>setOpen(false)}>â</button>
+            <button className="chatbot-close" onClick={()=>setOpen(false)}>✕</button>
           </div>
           <div className="chatbot-msgs">
             {msgs.map((m,i)=>(
@@ -261,29 +261,29 @@ function ChatBot() {
           <div className="chatbot-footer">
             <input
               className="chatbot-input"
-              placeholder="Ask anythingâ¦"
+              placeholder="Ask anything…"
               value={input}
               onChange={e=>setInput(e.target.value)}
               onKeyDown={onKey}
             />
-            <button className="chatbot-send" onClick={send} disabled={!input.trim()}>â</button>
+            <button className="chatbot-send" onClick={send} disabled={!input.trim()}>↑</button>
           </div>
         </div>
       )}
       <button className="chatbot-trigger" onClick={()=>setOpen(o=>!o)} title="Support chat">
-        {open ? 'â' : 'ð¬'}
+        {open ? '✕' : '💬'}
         {!open && <span className="chatbot-unread">1</span>}
       </button>
     </div>
   );
 }
 
-// âââ Reviews ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Reviews ──────────────────────────────────────────────────────────────────
 const REVIEWS = [
   {name:'Sarah Chen', role:'CTO @ Pulsar Labs', avatar:'SC', text:'Harbor replaced three internal systems. Setup was 10 minutes, API is clean, and the dashboard is genuinely beautiful. We scaled to 50M calls/month without a single ops incident.', stars:5},
   {name:'Marcus Webb', role:'Founder @ DevFlow', avatar:'MW', text:'The validate endpoint is stupid fast. Under 8ms p99 in production. We deprecated our entire auth middleware in favor of Harbor and never looked back.', stars:5},
   {name:'Priya Nair', role:'Staff Engineer @ Nexus', avatar:'PN', text:'I evaluated five API gateway solutions. Harbor was the only one that felt built by engineers who actually use APIs. The Go SDK is exceptional.', stars:5},
-  {name:'James Okafor', role:'VP Eng @ Streamline', avatar:'JO', text:'We run 200+ microservices through Harbor. Analytics, rate limiting, key management â all in one place. The scale plan pays for itself every week.', stars:5},
+  {name:'James Okafor', role:'VP Eng @ Streamline', avatar:'JO', text:'We run 200+ microservices through Harbor. Analytics, rate limiting, key management — all in one place. The scale plan pays for itself every week.', stars:5},
 ];
 
 function ReviewCarousel() {
@@ -295,7 +295,7 @@ function ReviewCarousel() {
   const r=REVIEWS[idx];
   return (
     <div className="review-card">
-      <div className="review-stars">{'â'.repeat(r.stars)}</div>
+      <div className="review-stars">{'★'.repeat(r.stars)}</div>
       <p className="review-text">"{r.text}"</p>
       <div className="review-author">
         <div className="review-avatar">{r.avatar}</div>
@@ -313,7 +313,7 @@ function ReviewCarousel() {
   );
 }
 
-// âââ CSS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -701,7 +701,7 @@ const CSS = `
   @keyframes gd3{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-20px)}}
 `;
 
-// âââ Main App âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App({ email: initialEmail = "" }: { email?: string }) {
   const [email, setEmail] = useState(initialEmail);
   const [loggedIn, setLoggedIn] = useState(!!initialEmail);
@@ -726,13 +726,13 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
   const latencyCounter = useCounter(avgLatency);
   const keysCounter = useCounter(keys.length);
 
-  const showToast = useCallback((msg:string,icon="â")=>{
+  const showToast = useCallback((msg:string,icon="✓")=>{
     if(toastTimer.current) clearTimeout(toastTimer.current);
     setToast({msg,icon});
     toastTimer.current = setTimeout(()=>setToast(null),3000);
   },[]);
 
-  // âK shortcut
+  // ⌘K shortcut
   useEffect(()=>{
     if(!loggedIn) return;
     const h=(e:KeyboardEvent)=>{
@@ -783,38 +783,38 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
     setLoading(true);
     try {
       const res = await fetch("/api/projects",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email.trim()})});
-      if(res.ok){ setLoggedIn(true); showToast("Welcome to Harbor!","ð"); }
-      else{ const d=await res.json(); showToast(d.error||"Something went wrong","â "); }
-    } catch{ showToast("Network error","â "); }
+      if(res.ok){ setLoggedIn(true); showToast("Welcome to Harbor!","👋"); }
+      else{ const d=await res.json(); showToast(d.error||"Something went wrong","⚠"); }
+    } catch{ showToast("Network error","⚠"); }
     finally{ setLoading(false); }
   };
 
   const copyKey = useCallback((key:string)=>{
-    navigator.clipboard.writeText(key).then(()=>showToast("API key copied!","ð"));
+    navigator.clipboard.writeText(key).then(()=>showToast("API key copied!","📋"));
   },[showToast]);
 
   const revokeKey = useCallback(async (key:string)=>{
     try {
       await fetch("/api/keys",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({key})});
       setKeys(p=>p.filter(k=>k.key!==key));
-      showToast("Key revoked","ð");
-    } catch{ showToast("Failed to revoke","â "); }
+      showToast("Key revoked","🗑");
+    } catch{ showToast("Failed to revoke","⚠"); }
   },[showToast]);
 
   const createKey = useCallback(async ()=>{
     try {
       const res=await fetch("/api/keys",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label:"New key"})});
-      if(res.ok){ const k:ApiKey=await res.json(); setKeys(p=>[k,...p]); showToast("New API key created!","ð"); }
-      else{ const d=await res.json(); showToast(d.error||"Failed to create key","â "); }
-    } catch{ showToast("Network error","â "); }
+      if(res.ok){ const k:ApiKey=await res.json(); setKeys(p=>[k,...p]); showToast("New API key created!","🔑"); }
+      else{ const d=await res.json(); showToast(d.error||"Failed to create key","⚠"); }
+    } catch{ showToast("Network error","⚠"); }
   },[showToast]);
 
   const checkout = useCallback(async (plan:"pro"|"scale")=>{
     try {
       const res=await fetch("/api/stripe/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({plan})});
       if(res.ok){ const{url}=await res.json(); window.location.href=url; }
-      else showToast("Checkout error â try again","â ");
-    } catch{ showToast("Network error","â "); }
+      else showToast("Checkout error — try again","⚠");
+    } catch{ showToast("Network error","⚠"); }
   },[showToast]);
 
   const handleCmdAction = useCallback((action:string)=>{
@@ -834,7 +834,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
   const successRate = totalCalls ? ((1-totalErrors/totalCalls)*100).toFixed(2) : "100.00";
   const emailInitial = email.charAt(0).toUpperCase();
 
-  // ââ LOGIN âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── LOGIN ──────────────────────────────────────────────────────────────────
   if(!loggedIn) return (
     <>
       <style>{CSS}</style>
@@ -858,7 +858,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                 value={email} onChange={e=>setEmail(e.target.value)} required/>
             </div>
             <button className="btn-login" type="submit" disabled={loading}>
-              {loading ? <><span className="spin"/> Signing inâ¦</> : "Continue â"}
+              {loading ? <><span className="spin"/> Signing in…</> : "Continue →"}
             </button>
           </form>
           <div className="login-review">
@@ -870,7 +870,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
     </>
   );
 
-  // ââ DASHBOARD ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── DASHBOARD ──────────────────────────────────────────────────────────────
   return (
     <>
       <style>{CSS}</style>
@@ -881,7 +881,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
       <div className="grid-bg"/>
 
       <div className="app-shell">
-        {/* ââ Sidebar ââ */}
+        {/* ── Sidebar ── */}
         <aside className="sidebar">
           <div className="sb-logo">
             <HarborLogo size={30}/>
@@ -894,14 +894,14 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
           <div className="sb-section">
             <div className="sb-section-label">Main</div>
             {([
-              {id:'overview',icon:'â¬¡',label:'Overview'},
-              {id:'keys',icon:ã²¬¡',label:'API Keys',count:keys.length},
-              {id:'analytics',icon:ã²¬¡',label:'Analytics'},
+              {id:'overview',icon:'⬡',label:'Overview'},
+              {id:'keys',icon:'⬡',label:'API Keys',count:keys.length},
+              {id:'analytics',icon:'⬡',label:'Analytics'},
             ] as {id:string;icon:string;label:string;count?:number}[]).map(item=>(
               <button key={item.id} className={`nav-item${nav===item.id?' active':''}`}
                 onClick={()=>setNav(item.id as "overview"|"keys"|"analytics")}>
                 <span className="nav-icon">
-                  {item.id==='overview'?'ð':item.id==='keys'?'ð':'ð'}
+                  {item.id==='overview'?'📊':item.id==='keys'?'🔑':'📈'}
                 </span>
                 {item.label}
                 {item.count!==undefined && item.count>0 && (
@@ -912,13 +912,13 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
           </div>
 
           <div className="sb-section">
-            <div className="sb-sectiction-label">Resources</div>
+            <div className="sb-section-label">Resources</div>
             <a className="nav-item" href="/docs" target="_blank" style={{textDecoration:'none'}}>
-              <span className="nav-icon">ð</span>
+              <span className="nav-icon">📖</span>
               Documentation
             </a>
             <button className="nav-item" onClick={()=>setShowUpgrade(true)}>
-              <span className="nav-icon">â¬</span>
+              <span className="nav-icon">⬆</span>
               Upgrade Plan
             </button>
           </div>
@@ -928,16 +928,16 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
             {/* Usage bar */}
             <div style={{padding:'10px 8px 12px',borderBottom:'1px solid rgba(255,255,255,0.05)',marginBottom:8}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                <span style={{fontSize:11,color:'#374151',fontWeight:600}}>API Usage</span>
+                <span style={{fontSize:11,color:#374151,fontWeight:600}}>API Utsage</span>
                 <span style={{fontSize:11,color:'#6366f1',fontWeight:600}}>
-                  {callLimit===Infinity?'â':`${Math.round(callPct)}%`}
+                  {callLimit===Infinity?'∧':`${Math.round(callPct)}%`}
                 </span>
               </div>
               <div className="usage-track">
                 <div className="usage-fill" style={{width:`${callPct}%`,background:'linear-gradient(90deg,#6366f1,#8b5cf6)'}}/>
               </div>
               <div style={{marginTop:4,fontSize:10,color:'#1f2937'}}>
-                {totalCalls.toLocaleString()} / {callLimit===Infinity?'â':callLimit.toLocaleString()}
+                {totalCalls.toLocaleString()} / {callLimit===Infinity?'∧':callLimit.toLocaleString()}
               </div>
             </div>
             <div className="sb-user" onClick={()=>setLoggedIn(false)} title="Sign out">
@@ -946,39 +946,39 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                 <div className="sb-email">{email}</div>
                 <div className="sb-plan">{plan} plan</div>
               </div>
-              <button className="sb-out">â</button>
+              <button className="sb-out">↗</button>
             </div>
           </div>
         </aside>
 
-        {/* ââ Content ââ */}
+        {/* ── Content ── */}
         <div className="content-area">
           {/* Status bar */}
           <div className="status-bar">
             <span><span className="s-dot"/>All systems operational</span>
-            <span className="s-sep">Â·</span>
+            <span className="s-sep">·</span>
             <span>99.98% uptime</span>
-            <span className="s-sep">Â·</span>
+            <span className="s-sep">·</span>
             <span>API p50 &lt;12ms</span>
-            <span className="s-sep">Â·</span>
+             <span className="s-sep">·</span>
             <span>3 regions active</span>
           </div>
 
           {/* Top bar */}
           <div className="topbar">
             <div className="topbar-search" onClick={()=>setShowCmd(true)}>
-              <span style={{fontSize:14,color:'#374151'}}>â</span>
-              <span className="topbar-search-text">Search or run a commandâ¦</span>
+              <span style={{fontSize:14,color:'#374151'}}>⌕</span>
+              <span className="topbar-search-text">Search or run a command…</span>
               <span className="topbar-kbd">
-                <span className="t-kbd">â</span><span className="t-kbd">K</span>
+                <span className="t-kbd">⌘</span><span className="t-kbd">K</span>
               </span>
             </div>
             <div className="topbar-right">
-              <button className="topbar-icon-btn" title="Notifications">ð</button>
-              <button className="topbar-icon-btn" title="Settings">â</button>
+              <button className="topbar-icon-btn" title="Notifications">🔔</button>
+              <button className="topbar-icon-btn" title="Settings">⚙</button>
               {plan==='free' && (
                 <button className="upgrade-btn" onClick={()=>setShowUpgrade(true)}>
-                  Upgrade â¦
+                  Upgrade ✦
                 </button>
               )}
               <span className={`plan-chip ${plan==='free'?'chip-free':plan==='pro'?'chip-pro':'chip-scale'}`}>
@@ -998,18 +998,18 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                       <h1 className="page-title">{project?.name ?? "Your API Gateway"}</h1>
                       <div className="live-pill"><span className="live-dot"/>Live</div>
                     </div>
-                    <p className="page-sub">{email} Â· Dashboard</p>
+                    <p className="page-sub">{email} · Dashboard</p>
                   </div>
                 </div>
 
                 {/* Metric cards */}
                 {dataLoading ? (
-                  <div className="load-center"><span className="spin"/> Loading analyticsâ¦</div>
+                  <div className="load-center"><span className="spin"/> Loading analytics…</div>
                 ) : (
                   <div className="metrics-grid">
                     <div className="m-card">
                       <div className="m-top">
-                        <div className="m-icon" style={{background:'rgba(99,102,241,0.15)'}}>ð¡</div>
+                        <div className="m-icon" style={{background:'rgba(99,102,241,0.15)'}}>📡</div>
                         <span className="m-trend tr-blue">7d</span>
                       </div>
                       <div className="m-value">{callsCounter.toLocaleString()}</div>
@@ -1018,8 +1018,8 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                     </div>
                     <div className="m-card">
                       <div className="m-top">
-                        <div className="m-icon" style={{background:'rgba(16,185,129,0.12)'}}>â</div>
-                        <span className="m-trend tr-green">â Good</span>
+                        <div className="m-icon" style={{background:'rgba(16,185,129,0.12)'}}>✓</div>
+                        <span className="m-trend tr-green">↑ Good</span>
                       </div>
                       <div className="m-value" style={{color:'#34d399'}}>{successRate}%</div>
                       <div className="m-label">Success Rate</div>
@@ -1027,7 +1027,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                     </div>
                     <div className="m-card">
                       <div className="m-top">
-                        <div className="m-icon" style={{background:'rgba(245,158,11,0.12)'}}>â¡</div>
+                        <div className="m-icon" style={{background:'rgba(245,158,11,0.12)'}}>⚡</div>
                         <span className="m-trend tr-amber">Fast</span>
                       </div>
                       <div className="m-value">
@@ -1038,7 +1038,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                     </div>
                     <div className="m-card">
                       <div className="m-top">
-                        <div className="m-icon" style={{background:'rgba(99,102,241,0.12)'}}>ð</div>
+                        <div className="m-icon" style={{background:'rgba(99,102,241,0.12)'}}>🔑</div>
                         <span className="m-trend tr-blue">Active</span>
                       </div>
                       <div className="m-value">{keysCounter}</div>
@@ -1052,7 +1052,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                 <div className="two-col">
                   <div className="panel">
                     <div className="panel-header">
-                      <span className="panel-title">API Traffic â Last 7 Days</span>
+                      <span className="panel-title">API Traffic — Last 7 Days</span>
                       <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#4b5563'}}>
                         <span style={{width:8,height:8,borderRadius:2,background:'#6366f1',display:'inline-block'}}/>
                         Calls
@@ -1075,7 +1075,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                     <div className="info-row">
                       <span className="i-label">Plan</span>
                       <span className={`i-val ${plan==='free'?'':'i-val-accent'}`} style={plan==='scale'?{color:'#fcd34d'}:{}}>
-                        {plan==='free'?'Free':plan==='pro'?'Pro â¦':'Scale â'}
+                        {plan==='free'?'Free':plan==='pro'?'Pro ✦':'Scale ★'}
                       </span>
                     </div>
                     <div className="info-row">
@@ -1086,7 +1086,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                     </div>
                     <div className="info-row">
                       <span className="i-label">Projects</span>
-                      <span className="i-val">{plan==='scale'?'â':plan==='pro'?'10':'1'}</span>
+                      <span className="i-val">{plan==='scale'?'∞':plan==='pro'?'10':'1'}</span>
                     </div>
                     <div className="info-row">
                       <span className="i-label">Analytics</span>
@@ -1130,15 +1130,16 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                   {/* Upgrade strip */}
                   {plan==='free' && (
                     <div className="upgrade-strip" style={{flexDirection:'column',alignItems:'flex-start'}}>
-                      <div className="upgrade-strip-label">ð Level up</div>
+                      <div className="upgrade-strip-label">🚀 Level up</div>
                       <div className="upgrade-strip-title">Unlock Harbor Pro</div>
                       <div className="upgrade-strip-sub" style={{marginBottom:14}}>2M calls/mo, 10 projects, 90-day analytics, priority support.</div>
                       <button className="upgrade-strip-btn" onClick={()=>setShowUpgrade(true)}>
-                        View Plans â
+                        View Plans →
                       </button>
                     </div>
                   )}
-                </>
+                </div>
+              </>
             )}
 
             {/* KEYS */}
@@ -1163,7 +1164,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                   </div>
                   {keys.length===0 ? (
                     <div className="empty-keys">
-                      <div className="empty-icon">ð</div>
+                      <div className="empty-icon">🔑</div>
                       <div className="empty-title">No API keys yet</div>
                       <div className="empty-sub">Create your first key to start making authenticated requests.</div>
                     </div>
@@ -1179,21 +1180,22 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                         <div key={k.key} className="key-row">
                           <div className="key-mono">
                             <span className="key-led"/>
-                            {k.key.slice(0,8)}â¦{k.key.slice(-6)}
+                            {k.key.slice(0,8)}…{k.key.slice(-6)}
                           </div>
                           <span className="key-date">{new Date(k.createdAt).toLocaleDateString()}</span>
                           <span style={{fontSize:12,color:k.active?'#34d399':'#4b5563',fontWeight:600,textAlign:'right' as const}}>
                             {k.active?'Active':'Inactive'}
                           </span>
                           <div style={{display:'flex',gap:6,justifyContent:'flex-end'}}>
-                            <button className="a-btn a-copy" title="Copy" onClick={()=>copyKey(k.key)}>ð</button>
-                            <button className="a-btn a-rev" title="Revoke" onClick={()=>revokeKey(k.key)}>ð</button>
+                            <button className="a-btn a-copy" title="Copy" onClick={()=>copyKey(k.key)}>📋</button>
+                            <button className="a-btn a-rev" title="Revoke" onClick={()=>revokeKey(k.key)}>🗑</button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-                </>
+                </div>
+              </>
             )}
 
             {/* ANALYTICS */}
@@ -1205,8 +1207,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                       <h1 className="page-title">Analytics</h1>
                       <div className="live-pill"><span className="live-dot"/>Live</div>
                     </div>
-                    <p className=" </div>
-                    <p className="page-sub">Last 7 days performance Â· {plan} plan</p>
+                    <p className="page-sub">Last 7 days performance · {plan} plan</p>
                   </div>
                 </div>
                 <div className="a-cards-grid">
@@ -1228,7 +1229,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                 </div>
                 <div className="panel" style={{marginBottom:14}}>
                   <div className="panel-header">
-                    <span className="panel-title">API Calls â Last 7 Days</span>
+                    <span className="panel-title">API Cvalls └ Last 7 Days</span>
                   </div>
                   <div className="panel-body">
                     <div style={{height:200}}>
@@ -1239,13 +1240,13 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                   </div>
                 </div>
                 <div className="panel">
-                  <div className="panel-huader">
+                  <div className="panel-header">
                     <span className="panel-title">Usage vs Limit</span>
                   </div>
                   <div className="panel-body">
                     <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
-                      <span style={{fontSize:14,color:'#94a3b8'}}>{totalCalls.toLocaleString()} used</span>
-                      <span style={{fontSize:14,color:'#374151'}}>{callLimit===Infinity?'Unlimited':`${callLimit.toLocaleString()} limit`}</span>
+                      <span style={{fontSize:14,color:#94a3b8}}>{totalCalls.toLocaleString()} used</span>
+                      <span style={{fontSize:14,color:'#374151'}}>{callLimit===Infinity?'Unlimited':`${callLimit.toLocaleString()} limit`}</span>
                     </div>
                     <div className="usage-track" style={{height:10,borderRadius:5}}>
                       <div className="usage-fill" style={{width:`${callPct}%`,background:'linear-gradient(90deg,#6366f1,#8b5cf6)'}}/>
@@ -1254,15 +1255,28 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                       Analytics retained for {plan==='scale'?'365':plan==='pro'?'90':'30'} days on the {plan} plan.
                       {plan==='free' && (
                         <button style={{marginLeft:8,fontSize:12,color:'#6366f1',background:'none',border:'none',cursor:'pointer',fontWeight:600}}
-                          onClick={()=>setShowUpgrade(true)}>Upgrade!Ü[ÜH8¡¤Ø]Û
-_BÙ]Ù]Ù]Ï
-_BÙ]Ù]Ù]ËÊ\ÜYH[Ù[
-ßBÜÚÝÕ\ÜYH	
-]Û\ÜÓ[YOH[Ù[XXÚÙÜÛÛXÚÏ^ÙOOÚYK\Ù]OOYKÝ\[\Ù]
-\Ù]ÚÝÕ\ÜYJ[ÙJNß_O]Û\ÜÓ[YOH[Ù[XÞ]ÛÛ\ÜÓ[YOH[Ù[^ÛÛXÚÏ^Ê
-OOÙ]ÚÝÕ\ÜYJ[ÙJ_O¸§%OØ]ÛÛ\ÜÓ[YOH[Ù[ZØØ[HÚ]Ý][Z]ÏÚÛ\ÜÓ[YOH[Ù[\ÝXÚ[
-È[Ú[Y\[ÈX[\ÈÚ\[ÈT\ÈÛ\ÜÜËÊ]Y]ÜÈ[[Ù[
-ßB]Û\ÜÓ[YOH[Ù[\]Y]ÜÈ]Y]ÐØ\Ýusel/>
+                          onClick={()=>setShowUpgrade(true)}>Upgrade for more →</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Upgrade Modal */}
+      {showUpgrade && (
+        <div className="modal-backdrop" onClick={e=>{if(e.target===e.currentTarget)setShowUpgrade(false);}}>
+          <div className="modal-box">
+            <button className="modal-x" onClick={()=>setShowUpgrade(false)}>✕</button>
+            <h2 className="modal-h">Scale without limits</h2>
+            <p className="modal-sub">Join 2,000+ engineering teams shipping APIs on Harbor.</p>
+
+            {/* Reviews in modal */}
+            <div className="modal-reviews">
+              <ReviewCarousel/>
             </div>
 
             <div className="plan-grid">
@@ -1271,10 +1285,10 @@ OOÙ]ÚÝÕ\ÜYJ[ÙJ_O¸§%OØ]ÛÛ\Ü�
                 <div className="plan-price">$49<span className="plan-period">/mo</span></div>
                 <ul className="plan-feats">
                   {["2M API calls / month","10 projects","90-day analytics","Priority support","Custom rate limits"].map(f=>(
-                    <li key={f} className="plan-feat"><span className="feat-check">â</span>{f}</li>
+                    <li key={f} className="plan-feat"><span className="feat-check">✓</span>{f}</li>
                   ))}
                 </ul>
-                <button className="plan-cta plan-cta-pro" onClick={()=>checkout("pro")}>Get Pro â</button>
+                <button className="plan-cta plan-cta-pro" onClick={()=>checkout("pro")}>Get Pro →</button>
               </div>
               <div className="plan-box plan-box-scale">
                 <div style={{position:'absolute',top:12,right:12,fontSize:10,fontWeight:700,
@@ -1285,14 +1299,14 @@ OOÙ]ÚÝÕ\ÜYJ[ÙJ_O¸§%OØ]ÛÛ\Ü�
                 <div className="plan-price">$299<span className="plan-period">/mo</span></div>
                 <ul className="plan-feats">
                   {["Unlimited API calls","Unlimited projects","365-day analytics","Dedicated support","SLA guarantee","Advanced monitoring","White-label options"].map(f=>(
-                    <li key={f} className="plan-feat"><span className="feat-check">â</span>{f}</li>
+                    <li key={f} className="plan-feat"><span className="feat-check">✓</span>{f}</li>
                   ))}
                 </ul>
-                <button className="plan-cta plan-cta-scale" onClick={()=>checkout("scale")}>Get Scale â</button>
+                <button className="plan-cta plan-cta-scale" onClick={()=>checkout("scale")}>Get Scale →</button>
               </div>
             </div>
             <p style={{textAlign:'center',fontSize:12,color:'#374151'}}>
-              Cancel anytime Â· Instant activation Â· Stripe-secured payments
+              Cancel anytime · Instant activation · Stripe-secured payments
             </p>
           </div>
         </div>

@@ -90,7 +90,7 @@ function LineChart({ data }: { data: AnalyticsPoint[] }) {
   const path = pts.length < 2 ? '' : pts.reduce((acc,[x,y],i) => {
     if (i===0) return `M${x},${y}`;
     const [px,py]=pts[i-1];
-    return `${acc} C${px+(x-px)/2.2},${px} ${x-(x-px)/2.2},${y} ${x},${y}`;
+    return `${acc} C${px+(x-px)/2.2},${py} ${x-(x-px)/2.2},${y} ${x},${y}`;
   }, '');
   const area = pts.length < 2 ? '' : `${path} L${pts[pts.length-1][0]},${H} L${pts[0][0]},${H} Z`;
 
@@ -477,7 +477,7 @@ const CSS = `
 
   /* Activity feed */
   .feed-wrap{max-height:220px;overflow-y:auto}
-  .feed-row{display:grid;grid-template-columns;52px 1fr 40px 55px 70px;gap:8px;align-items:center;
+  .feed-row{display:grid;grid-template-columns:52px 1fr 40px 55px 70px;gap:8px;align-items:center;
     padding:8px 18px;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s;animation:feedIn 0.3s ease}
   .feed-row:hover{background:rgba(255,255,255,0.02)}
   .method-badge{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;
@@ -611,7 +611,7 @@ const CSS = `
     background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;font-size:22px;
     box-shadow:0 8px 30px rgba(99,102,241,0.5);transition:all 0.2s;position:relative;
     display:flex;align-items:center;justify-content:center}
-  .chatbot-trigger:hover{transform:scale(1.08);box-shadow:0 12px 40px rgba(99,102,241,0.65)}
+  .chatbot-trigger:hover{transform:scale(1.08);box-shadow:0 12px 40px rgba(99,102,241,41,0.65)}
   .chatbot-unread{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;
     background:#ef4444;color:white;font-size:9px;font-weight:700;
     display:flex;align-items:center;justify-content:center;border:2px solid #030712}
@@ -834,7 +834,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
   const successRate = totalCalls ? ((1-totalErrors/totalCalls)*100).toFixed(2) : "100.00";
   const emailInitial = email.charAt(0).toUpperCase();
 
-  // ── LOGIN ──────────────────────────────────────────────────────────────────
+  // ── LOGIN ─────────────────────────────────────────────────────────────────
   if(!loggedIn) return (
     <>
       <style>{CSS}</style>
@@ -929,7 +929,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
             <div style={{padding:'10px 8px 12px',borderBottom:'1px solid rgba(255,255,255,0.05)',marginBottom:8}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                 <span style={{fontSize:11,color:'#374151',fontWeight:600}}>API Usage</span>
-                <span style={{fontSize:11,color:'#6366f1',fontWeight:600}}>
+                <span style={{fontSize:11,color:#06366f1',fontWeight:600}}>
                   {callLimit===Infinity?'∞':`${Math.round(callPct)}%`}
                 </span>
               </div>
@@ -1162,7 +1162,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                       <span>+</span> New Key
                     </button>
                   </div>
-                 {keys.length===0 ? (
+                  {keys.length===0 ? (
                     <div className="empty-keys">
                       <div className="empty-icon">🔑</div>
                       <div className="empty-title">No API keys yet</div>
@@ -1173,17 +1173,17 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                       {/* Header row */}
                       <div style={{display:'grid',gridTemplateColumns:'1fr auto auto auto',gap:14,padding:'8px 18px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
                         {['Key','Created','Status','Actions'].map((h,i)=>(
-                          <span key={h} style={{fontSize:11,fontWeight:700,color:'#1f2937',textTransform:'uppercase',letterSpacing:'0.7px',textAlign:i>1?'right' as const:'left' as const}}>{h}</span>
+                          <span key={h} style={{fontSize:11,fontWeight:700,color:#1f2937,textTransform:'uppercase',letterSpacing:'0.7px'textAlign:i>1?'right' as const:'left' as const}}>{h}</span>
                         ))}
                       </div>
                       {keys.map(k=>(
-                        <div key={k.key} cla!ssName="key-row">
+                        <div key={k.key} className="key-row">
                           <div className="key-mono">
                             <span className="key-led"/>
                             {k.key.slice(0,8)}…{k.key.slice(-6)}
                           </div>
                           <span className="key-date">{new Date(k.createdAt).toLocaleDateString()}</span>
-                          <span style={{fontSize:12,color:k.active?'#34d399':'#4b5563',fontWeight:600,textAlign:'right' as const}}>
+                          <span style={{fontSize:12,color:k.active?'#34d399':##4b5563',fontWeight:600,textAlign:'right' as const}}>
                             {k.active?'Active':'Inactive'}
                           </span>
                           <div style={{display:'flex',gap:6,justifyContent:'flex-end'}}>
@@ -1227,7 +1227,7 @@ export default function App({ email: initialEmail = "" }: { email?: string }) {
                     <div className="a-card-sub">p50 across all regions</div>
                   </div>
                 </div>
-                <div className="panel" style={{marginBottom:14}}>
+ssName="panel" style={{marginBottom:14}}>
                   <div className="panel-header">
                     <span className="panel-title">API Calls — Last 7 Days</span>
                   </div>
